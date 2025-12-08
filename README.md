@@ -1,21 +1,19 @@
-# Smart Personal Finance Tracker
+# Recehku — Smart Personal Finance Tracker
 
-A sophisticated full-stack personal finance tracking application with multi-user and multi-workspace support.
+A lightweight full-stack personal finance tracker (Recehku) with multi-user and multi-workspace support.
 
 ## 🚀 Features
 
-- **Multi-User & Multi-Workspace**: Users can belong to multiple workspaces with role-based access control (Owner, Admin, Member, Viewer)
-- **Account Management**: Track multiple accounts (Bank, Cash, Credit Card, E-Wallet, etc.)
-- **Category Management**: Organize transactions with hierarchical categories (parent/sub-categories)
+- **Multi-User & Multi-Workspace**: Users can belong to multiple workspaces with role-based access control (Owner, Admin, Member, Viewer).
+- **Account Management**: Track multiple account types (Bank, Cash, Credit Card, E-Wallet).
+- **Category Management**: Create and manage hierarchical categories for Income and Expense.
 - **Transaction Management**:
-  - Record Income, Expense, and Transfer transactions
-  - Dynamic form that adapts based on transaction type
-  - Advanced filtering by date, type, and account
+  - Record Income, Expense, and Transfer transactions.
+  - Filters by date, type, and account; supports monthly tab filtering in the Transactions page.
 - **Dashboard Analytics**:
-  - Total balance across all accounts
-  - Income and expense tracking
-  - Expense breakdown by category with pie charts
-- **Responsive Design**: Beautiful UI built with Tailwind CSS
+  - Total balance across accounts, monthly income/expense summaries.
+  - Expense and income breakdown by category (pie charts). Server-side aggregation endpoint available.
+- **Responsive UI**: Built with Tailwind CSS and Recharts for charts.
 
 ## 🛠️ Tech Stack
 
@@ -46,7 +44,7 @@ A sophisticated full-stack personal finance tracking application with multi-user
 ### 1. Clone the Repository
 
 ```bash
-cd /Volumes/Data/react/keuangan
+git clone https://github.com/isnanw/recehku.git
 ```
 
 ### 2. Backend Setup
@@ -54,14 +52,14 @@ cd /Volumes/Data/react/keuangan
 ```bash
 cd backend
 
-# Create virtual environment
-python -m venv venv
+# Create virtual environment (we use a local .venv)
+python -m venv .venv
 
 # Activate virtual environment
 # On macOS/Linux:
-source venv/bin/activate
+source .venv/bin/activate
 # On Windows:
-# venv\Scripts\activate
+# .venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
@@ -124,11 +122,12 @@ cp .env.example .env
 
 ```bash
 cd backend
-source venv/bin/activate  # On macOS/Linux
-python run.py
+source .venv/bin/activate  # On macOS/Linux
+# The server listens on port 5001 by default. To avoid port conflicts you can override with PORT:
+PORT=5002 python run.py
 ```
 
-Backend will run on `http://localhost:5000`
+Backend will run on `http://localhost:5001` (or the `PORT` you set)
 
 ### Start Frontend Development Server
 
@@ -217,13 +216,17 @@ keuangan/
 - `PUT /api/categories/:id` - Update category
 - `DELETE /api/categories/:id` - Delete category
 
-### Transactions
-- `GET /api/transactions` - Get all transactions (supports filtering)
+- ### Transactions
+- `GET /api/transactions` - Get transactions (supports filtering and pagination via `page` and `per_page` query params)
 - `POST /api/transactions` - Create transaction
 - `GET /api/transactions/:id` - Get transaction details
 - `PUT /api/transactions/:id` - Update transaction
 - `DELETE /api/transactions/:id` - Delete transaction
 - `GET /api/transactions/summary` - Get financial summary
+
+### Analytics
+
+- `GET /api/analytics/income-by-category` - Aggregate income by category on the server (supports `workspace_id`, `start_date`, `end_date`, `top_n`). The frontend will use this endpoint when available; otherwise it falls back to client-side paginated aggregation using `/api/transactions`.
 
 ## 🎨 Key Features Explained
 
@@ -256,7 +259,7 @@ MIT License
 
 ## 👨‍💻 Author
 
-Built with ❤️ by a Senior Full Stack Developer
+Built with ❤️ by Isnan Wahyudi
 
 ## 🐛 Known Issues
 
