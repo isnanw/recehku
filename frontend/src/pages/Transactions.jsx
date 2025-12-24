@@ -24,6 +24,12 @@ import Select from 'react-select';
 import Modal from '../components/Modal';
 import CurrencyInput from '../components/CurrencyInput';
 import api from '../utils/api';
+import { DateRangePicker } from 'react-date-range';
+import { id } from 'date-fns/locale';
+import 'react-date-range/dist/styles.css';
+import 'react-date-range/dist/theme/default.css';
+import dayjs from 'dayjs';
+import 'dayjs/locale/id';
 
 const Transaksi = () => {
   const { currentWorkspace } = useWorkspace();
@@ -59,6 +65,14 @@ const Transaksi = () => {
     account_id: '',
   });
 
+  // Date range state for picker
+  const [dateRange, setDateRange] = useState([{
+    startDate: null,
+    endDate: null,
+    key: 'selection'
+  }]);
+  const [showDateRangePicker, setShowDateRangePicker] = useState(false);
+
   // Month tabs state (default to current month)
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
@@ -71,6 +85,20 @@ const Transaksi = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentWorkspace]);
+
+  // Close date picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showDateRangePicker && !event.target.closest('.date-range-picker-wrapper')) {
+        setShowDateRangePicker(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDateRangePicker]);
 
   // Fetch only transactions (fast, used when switching month/filter)
   const fetchTransactions = async (overrideFilters = null) => {
@@ -618,30 +646,194 @@ const Transaksi = () => {
             <p className="text-sm text-gray-500">Temukan transaksi dengan cepat</p>
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div>
+
+        {/* Date Range Shortcuts */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          <button
+            type="button"
+            onClick={() => {
+              const today = new Date();
+              setDateRange([{
+                startDate: today,
+                endDate: today,
+                key: 'selection'
+              }]);
+              setFilters({
+                ...filters,
+                start_date: dayjs(today).format('YYYY-MM-DD'),
+                end_date: dayjs(today).format('YYYY-MM-DD'),
+              });
+            }}
+            className="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            Hari Ini
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const today = new Date();
+              const start = dayjs().subtract(6, 'day').toDate();
+              setDateRange([{
+                startDate: start,
+                endDate: today,
+                key: 'selection'
+              }]);
+              setFilters({
+                ...filters,
+                start_date: dayjs(start).format('YYYY-MM-DD'),
+                end_date: dayjs(today).format('YYYY-MM-DD'),
+              });
+            }}
+            className="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            7 Hari Terakhir
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const start = dayjs().startOf('month').toDate();
+              const end = dayjs().endOf('month').toDate();
+              setDateRange([{
+                startDate: start,
+                endDate: end,
+                key: 'selection'
+              }]);
+              setFilters({
+                ...filters,
+                start_date: dayjs(start).format('YYYY-MM-DD'),
+                end_date: dayjs(end).format('YYYY-MM-DD'),
+              });
+            }}
+            className="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            Bulan Ini
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const start = dayjs().subtract(1, 'month').startOf('month').toDate();
+              const end = dayjs().subtract(1, 'month').endOf('month').toDate();
+              setDateRange([{
+                startDate: start,
+                endDate: end,
+                key: 'selection'
+              }]);
+              setFilters({
+                ...filters,
+                start_date: dayjs(start).format('YYYY-MM-DD'),
+                end_date: dayjs(end).format('YYYY-MM-DD'),
+              });
+            }}
+            className="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            Bulan Lalu
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const today = new Date();
+              const start = dayjs().subtract(3, 'month').toDate();
+              setDateRange([{
+                startDate: start,
+                endDate: today,
+                key: 'selection'
+              }]);
+              setFilters({
+                ...filters,
+                start_date: dayjs(start).format('YYYY-MM-DD'),
+                end_date: dayjs(today).format('YYYY-MM-DD'),
+              });
+            }}
+            className="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            3 Bulan Terakhir
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setDateRange([{ startDate: null, endDate: null, key: 'selection' }]);
+              setFilters({
+                ...filters,
+                start_date: '',
+                end_date: '',
+              });
+            }}
+            className="px-3 py-1.5 text-sm bg-red-50 text-red-600 border border-red-300 rounded-md hover:bg-red-100 transition-colors"
+          >
+            Reset Tanggal
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="relative date-range-picker-wrapper">
             <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
               <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-500" />
-              Dari Tanggal
+              Rentang Tanggal
             </label>
-            <input
-              type="date"
-              value={filters.start_date}
-              onChange={(e) => setFilters({ ...filters, start_date: e.target.value })}
-              className="input-field"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-              <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-500" />
-              Sampai Tanggal
-            </label>
-            <input
-              type="date"
-              value={filters.end_date}
-              onChange={(e) => setFilters({ ...filters, end_date: e.target.value })}
-              className="input-field"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                readOnly
+                value={
+                  dateRange[0].startDate && dateRange[0].endDate
+                    ? `${dayjs(dateRange[0].startDate).format('DD MMM YYYY')} - ${dayjs(dateRange[0].endDate).format('DD MMM YYYY')}`
+                    : ''
+                }
+                onClick={() => setShowDateRangePicker(!showDateRangePicker)}
+                placeholder="Pilih rentang tanggal"
+                className="input-field cursor-pointer pr-10"
+              />
+              <FontAwesomeIcon
+                icon={faCalendarAlt}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+              />
+            </div>
+            {showDateRangePicker && (
+              <div className="absolute z-50 mt-2 bg-white rounded-lg shadow-xl border border-gray-200">
+                <DateRangePicker
+                  ranges={dateRange}
+                  onChange={(item) => {
+                    setDateRange([item.selection]);
+                    if (item.selection.startDate && item.selection.endDate) {
+                      setFilters({
+                        ...filters,
+                        start_date: dayjs(item.selection.startDate).format('YYYY-MM-DD'),
+                        end_date: dayjs(item.selection.endDate).format('YYYY-MM-DD'),
+                      });
+                    }
+                  }}
+                  locale={id}
+                  moveRangeOnFirstSelection={false}
+                  months={2}
+                  direction="horizontal"
+                  rangeColors={['#3b82f6']}
+                />
+                <div className="px-4 py-3 border-t border-gray-200 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDateRange([{ startDate: null, endDate: null, key: 'selection' }]);
+                      setFilters({
+                        ...filters,
+                        start_date: '',
+                        end_date: '',
+                      });
+                      setShowDateRangePicker(false);
+                    }}
+                    className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+                  >
+                    Reset
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowDateRangePicker(false)}
+                    className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                  >
+                    Tutup
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
