@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -37,6 +37,7 @@ const Transaksi = () => {
   const [accounts, setAccounts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [tableLoading, setTableLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [openDropdown, setOpenDropdown] = useState(null);
@@ -72,6 +73,7 @@ const Transaksi = () => {
     key: 'selection'
   }]);
   const [showDateRangePicker, setShowDateRangePicker] = useState(false);
+  const [isFilterExpanded, setIsFilterExpanded] = useState(false);
 
   // Month tabs state (default to current month)
   const [selectedMonth, setSelectedMonth] = useState(() => {
@@ -101,18 +103,18 @@ const Transaksi = () => {
   }, [showDateRangePicker]);
 
   // Fetch only transactions (fast, used when switching month/filter)
-  const fetchTransactions = async (overrideFilters = null) => {
+  const fetchTransactions = useCallback(async (overrideFilters = null) => {
     try {
-      setLoading(true);
+      setTableLoading(true);
       const params = { workspace_id: currentWorkspace.id, ...(overrideFilters || filters) };
       const txnRes = await api.get('/transactions', { params });
       setTransactions(txnRes.data.transactions);
     } catch (error) {
       console.error('Failed to fetch transactions:', error);
     } finally {
-      setLoading(false);
+      setTableLoading(false);
     }
-  };
+  }, [currentWorkspace?.id, filters]);
 
   // Fetch all data (transactions + accounts + categories). Used on workspace switch and after create/delete.
   const fetchAllData = async (overrideFilters = null) => {
@@ -636,134 +638,30 @@ const Transaksi = () => {
       </Modal>
 
       {/* Premium Filter Section */}
-      <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100 hover:shadow-2xl transition-shadow duration-300">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
-            <FontAwesomeIcon icon={faSearch} className="text-white" />
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-100 hover:shadow-2xl transition-shadow duration-300">
+        <div
+          className="flex items-center justify-between p-6 cursor-pointer hover:bg-gray-50 transition-colors rounded-t-2xl"
+          onClick={() => setIsFilterExpanded(!isFilterExpanded)}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
+              <FontAwesomeIcon icon={faSearch} className="text-white" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">Filter & Pencarian</h3>
+              <p className="text-sm text-gray-500">Temukan transaksi dengan cepat</p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-xl font-bold text-gray-900">Filter & Pencarian</h3>
-            <p className="text-sm text-gray-500">Temukan transaksi dengan cepat</p>
-          </div>
-        </div>
-
-        {/* Date Range Shortcuts */}
-        <div className="flex flex-wrap gap-2 mb-4">
-          <button
-            type="button"
-            onClick={() => {
-              const today = new Date();
-              setDateRange([{
-                startDate: today,
-                endDate: today,
-                key: 'selection'
-              }]);
-              setFilters({
-                ...filters,
-                start_date: dayjs(today).format('YYYY-MM-DD'),
-                end_date: dayjs(today).format('YYYY-MM-DD'),
-              });
-            }}
-            className="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-          >
-            Hari Ini
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              const today = new Date();
-              const start = dayjs().subtract(6, 'day').toDate();
-              setDateRange([{
-                startDate: start,
-                endDate: today,
-                key: 'selection'
-              }]);
-              setFilters({
-                ...filters,
-                start_date: dayjs(start).format('YYYY-MM-DD'),
-                end_date: dayjs(today).format('YYYY-MM-DD'),
-              });
-            }}
-            className="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-          >
-            7 Hari Terakhir
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              const start = dayjs().startOf('month').toDate();
-              const end = dayjs().endOf('month').toDate();
-              setDateRange([{
-                startDate: start,
-                endDate: end,
-                key: 'selection'
-              }]);
-              setFilters({
-                ...filters,
-                start_date: dayjs(start).format('YYYY-MM-DD'),
-                end_date: dayjs(end).format('YYYY-MM-DD'),
-              });
-            }}
-            className="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-          >
-            Bulan Ini
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              const start = dayjs().subtract(1, 'month').startOf('month').toDate();
-              const end = dayjs().subtract(1, 'month').endOf('month').toDate();
-              setDateRange([{
-                startDate: start,
-                endDate: end,
-                key: 'selection'
-              }]);
-              setFilters({
-                ...filters,
-                start_date: dayjs(start).format('YYYY-MM-DD'),
-                end_date: dayjs(end).format('YYYY-MM-DD'),
-              });
-            }}
-            className="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-          >
-            Bulan Lalu
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              const today = new Date();
-              const start = dayjs().subtract(3, 'month').toDate();
-              setDateRange([{
-                startDate: start,
-                endDate: today,
-                key: 'selection'
-              }]);
-              setFilters({
-                ...filters,
-                start_date: dayjs(start).format('YYYY-MM-DD'),
-                end_date: dayjs(today).format('YYYY-MM-DD'),
-              });
-            }}
-            className="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-          >
-            3 Bulan Terakhir
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setDateRange([{ startDate: null, endDate: null, key: 'selection' }]);
-              setFilters({
-                ...filters,
-                start_date: '',
-                end_date: '',
-              });
-            }}
-            className="px-3 py-1.5 text-sm bg-red-50 text-red-600 border border-red-300 rounded-md hover:bg-red-100 transition-colors"
-          >
-            Reset Tanggal
+          <button className="text-gray-500 hover:text-blue-600 transition-colors">
+            <FontAwesomeIcon
+              icon={isFilterExpanded ? faRotateRight : faFilter}
+              className={`text-xl transition-transform duration-300 ${isFilterExpanded ? 'rotate-180' : ''}`}
+            />
           </button>
         </div>
 
+        <div className={`overflow-hidden transition-all duration-300 ${isFilterExpanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
+          <div className="px-6 pb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="relative date-range-picker-wrapper">
             <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
@@ -886,6 +784,8 @@ const Transaksi = () => {
             Reset Filter
           </button>
         </div>
+          </div>
+        </div>
       </div>
 
       {/* Riwayat Transaksi */}
@@ -903,26 +803,54 @@ const Transaksi = () => {
           </span>
         </div>
 
-        {/* Month Tabs - pilih bulan (default: current month) */}
+        {/* Month Tabs - pilih bulan dengan navigasi tahun */}
         <div className="mt-4 mb-6">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-gray-700">Pilih Bulan</h3>
-            <button
-              onClick={() => {
-                const now = new Date();
-                setSelectedMonth({ year: now.getFullYear(), month: now.getMonth() });
-              }}
-              className="text-sm text-blue-600 hover:underline"
-            >
-              Bulan Ini
-            </button>
+            <div className="flex items-center gap-3">
+              <h3 className="text-sm font-semibold text-gray-700">Pilih Periode</h3>
+              <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-1.5 border border-gray-200">
+                <button
+                  onClick={() => setSelectedMonth(prev => ({ ...prev, year: prev.year - 1 }))}
+                  className="text-gray-600 hover:text-blue-600 transition-colors"
+                  title="Tahun sebelumnya"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <span className="text-sm font-bold text-gray-800 min-w-[60px] text-center">
+                  {selectedMonth.year}
+                </span>
+                <button
+                  onClick={() => setSelectedMonth(prev => ({ ...prev, year: prev.year + 1 }))}
+                  className="text-gray-600 hover:text-blue-600 transition-colors"
+                  title="Tahun berikutnya"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+              <button
+                onClick={() => {
+                  const now = new Date();
+                  setSelectedMonth({ year: now.getFullYear(), month: now.getMonth() });
+                }}
+                className="text-xs px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors font-medium"
+              >
+                Bulan Ini
+              </button>
+            </div>
+            <span className="text-xs text-gray-500">
+              {new Date(selectedMonth.year, selectedMonth.month, 1).toLocaleString('id-ID', { month: 'long', year: 'numeric' })}
+            </span>
           </div>
           <div className="flex gap-2 overflow-x-auto pb-2">
             {months.map((m) => (
               <button
                 key={m.index}
                 onClick={() => handleSelectMonth(m.index)}
-                className={`px-3 py-2 rounded-xl text-sm font-semibold whitespace-nowrap ${selectedMonth.month === m.index ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white' : 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-blue-50 hover:text-blue-600'}`}
+                className={`px-3 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${selectedMonth.month === m.index ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md' : 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300'}`}
               >
                 {m.label}
               </button>
@@ -930,7 +858,7 @@ const Transaksi = () => {
           </div>
         </div>
 
-        {transactions.length === 0 ? (
+        {transactions.length === 0 && !tableLoading ? (
           <div className="text-center py-12">
             <FontAwesomeIcon icon={faInbox} className="text-6xl text-gray-300 mb-4" />
             <p className="text-gray-500 text-lg">Belum ada transaksi</p>
@@ -939,8 +867,16 @@ const Transaksi = () => {
         ) : (
           <>
             {/* Tampilan Desktop - Table */}
-            <div className="hidden lg:block overflow-visible">
-              <div className="overflow-x-auto rounded-2xl border border-gray-200 shadow-md">
+            <div className="hidden lg:block overflow-visible relative">
+              {tableLoading && (
+                <div className="absolute inset-0 bg-white bg-opacity-75 z-10 flex items-center justify-center rounded-2xl">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <p className="text-sm text-gray-600">Memuat data...</p>
+                  </div>
+                </div>
+              )}
+              <div className={`overflow-x-auto rounded-2xl border border-gray-200 shadow-md transition-opacity duration-200 ${tableLoading ? 'opacity-50' : 'opacity-100'}`}>
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50">
                   <tr>
@@ -1113,7 +1049,16 @@ const Transaksi = () => {
             </div>
 
             {/* Tampilan Mobile/Tablet - Cards */}
-            <div className="lg:hidden space-y-4">
+            <div className="lg:hidden space-y-4 relative">
+              {tableLoading && (
+                <div className="absolute inset-0 bg-white bg-opacity-75 z-10 flex items-center justify-center rounded-2xl">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <p className="text-sm text-gray-600">Memuat data...</p>
+                  </div>
+                </div>
+              )}
+              <div className={`space-y-4 transition-opacity duration-200 ${tableLoading ? 'opacity-50' : 'opacity-100'}`}>
               {currentTransactions.map((txn) => (
                 <div
                   key={txn.id}
@@ -1194,6 +1139,7 @@ const Transaksi = () => {
                   </div>
                 </div>
               ))}
+              </div>
             </div>
 
             {/* Pagination Controls */}
