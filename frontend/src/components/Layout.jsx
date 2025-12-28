@@ -16,7 +16,8 @@ import {
   faChevronDown,
   faCog,
   faCircleUser,
-  faCoins
+  faCoins,
+  faDatabase
 } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../context/AuthContext';
 import { useWorkspace } from '../context/WorkspaceContext';
@@ -30,14 +31,19 @@ const Layout = () => {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [masterMenuOpen, setMasterMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const userMenuRef = useRef(null);
+  const masterMenuRef = useRef(null);
 
   // Close user menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
         setUserMenuOpen(false);
+      }
+      if (masterMenuRef.current && !masterMenuRef.current.contains(event.target)) {
+        setMasterMenuOpen(false);
       }
     };
 
@@ -64,12 +70,20 @@ const Layout = () => {
     { path: '/dashboard', label: 'Dashboard', icon: faChartLine },
     { path: '/transactions', label: 'Transaksi', icon: faExchangeAlt },
     { path: '/investments', label: 'Investasi', icon: faCoins },
-    { path: '/accounts', label: 'Akun', icon: faWallet },
-    { path: '/categories', label: 'Kategori', icon: faFolderOpen },
+    {
+      type: 'dropdown',
+      label: 'Master',
+      icon: faDatabase,
+      items: [
+        { path: '/accounts', label: 'Akun', icon: faWallet },
+        { path: '/categories', label: 'Kategori', icon: faFolderOpen }
+      ]
+    },
     { path: '/members', label: 'Members', icon: faUsers },
   ];
 
   const isActive = (path) => location.pathname === path;
+  const isMasterActive = () => location.pathname === '/accounts' || location.pathname === '/categories';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -97,49 +111,85 @@ const Layout = () => {
 
             {/* Desktop Navigation */}
             <nav className="hidden lg:flex items-center gap-1">
-              {navItems.map((item) => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`group relative px-4 py-2 rounded-lg transition-all duration-300 ${
-                    isActive(item.path)
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/30'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <FontAwesomeIcon
-                      icon={item.icon}
-                      className={`text-sm transition-transform duration-300 ${
-                        isActive(item.path) ? '' : 'group-hover:scale-110'
-                      }`}
-                    />
-                    <span className="text-sm font-medium">{item.label}</span>
-                  </div>
-                </Link>
-              ))}
+              {navItems.map((item, index) => {
+                if (item.type === 'dropdown') {
+                  return (
+                    <div key={index} className="relative" ref={masterMenuRef}>
+                      <button
+                        onClick={() => setMasterMenuOpen(!masterMenuOpen)}
+                        className={`group relative px-4 py-2 rounded-lg transition-all duration-300 ${
+                          isMasterActive()
+                            ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/30'
+                            : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <FontAwesomeIcon
+                            icon={item.icon}
+                            className={`text-sm transition-transform duration-300 ${
+                              isMasterActive() ? '' : 'group-hover:scale-110'
+                            }`}
+                          />
+                          <span className="text-sm font-medium">{item.label}</span>
+                          <FontAwesomeIcon
+                            icon={faChevronDown}
+                            className={`text-xs transition-transform duration-300 ${
+                              masterMenuOpen ? 'rotate-180' : ''
+                            }`}
+                          />
+                        </div>
+                      </button>
+
+                      {/* Dropdown Menu */}
+                      {masterMenuOpen && (
+                        <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden animate-fadeIn z-50">
+                          {item.items.map((subItem) => (
+                            <Link
+                              key={subItem.path}
+                              to={subItem.path}
+                              onClick={() => setMasterMenuOpen(false)}
+                              className={`flex items-center gap-3 px-4 py-3 transition-all duration-200 ${
+                                isActive(subItem.path)
+                                  ? 'bg-gradient-to-r from-blue-50 to-purple-50 text-blue-600 border-l-4 border-blue-500'
+                                  : 'text-gray-700 hover:bg-gray-50'
+                              }`}
+                            >
+                              <FontAwesomeIcon icon={subItem.icon} className="text-sm" />
+                              <span className="text-sm font-medium">{subItem.label}</span>
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`group relative px-4 py-2 rounded-lg transition-all duration-300 ${
+                      isActive(item.path)
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/30'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <FontAwesomeIcon
+                        icon={item.icon}
+                        className={`text-sm transition-transform duration-300 ${
+                          isActive(item.path) ? '' : 'group-hover:scale-110'
+                        }`}
+                      />
+                      <span className="text-sm font-medium">{item.label}</span>
+                    </div>
+                  </Link>
+                );
+              })}
             </nav>
 
-            {/* Right Section: Workspace + User Menu */}
+            {/* Right Section: User Menu */}
             <div className="flex items-center gap-3">
-              {/* Workspace Selector - Desktop - Only for Owner */}
-              {user?.is_owner && workspaces && workspaces.length > 0 && (
-                <div className="hidden lg:flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200 hover:border-gray-300 transition-all">
-                  <FontAwesomeIcon icon={faBuilding} className="text-gray-500 text-sm" />
-                  <select
-                    value={currentWorkspace?.id || ''}
-                    onChange={(e) => switchWorkspace(parseInt(e.target.value))}
-                    className="bg-transparent text-sm font-medium text-gray-700 focus:outline-none cursor-pointer"
-                  >
-                    {workspaces.map((workspace) => (
-                      <option key={workspace.id} value={workspace.id}>
-                        {workspace.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
               {/* User Dropdown Menu - Desktop */}
               <div className="hidden md:block relative" ref={userMenuRef}>
                 <button
@@ -205,6 +255,27 @@ const Layout = () => {
                         )}
                       </div>
                     </div>
+
+                    {/* Workspace Selector */}
+                    {workspaces && workspaces.length > 1 && (
+                      <div className="p-4 border-b border-gray-100">
+                        <label className="block text-xs font-semibold text-gray-500 mb-2">
+                          <FontAwesomeIcon icon={faBuilding} className="mr-2" />
+                          WORKSPACE
+                        </label>
+                        <select
+                          value={currentWorkspace?.id || ''}
+                          onChange={(e) => switchWorkspace(parseInt(e.target.value))}
+                          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        >
+                          {workspaces.map((workspace) => (
+                            <option key={workspace.id} value={workspace.id}>
+                              {workspace.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
 
                     {/* Menu Items */}
                     <div className="p-2">
@@ -282,49 +353,84 @@ const Layout = () => {
                 </div>
               </div>
 
-              {/* Mobile Workspace Selector - Only for Owner */}
-              {user?.is_owner && workspaces && workspaces.length > 0 && (
-                <div className="px-4 py-3 border-b border-gray-100 bg-white">
-                  <label className="block text-xs font-semibold text-gray-500 mb-2">
-                    <FontAwesomeIcon icon={faBuilding} className="mr-2" />
-                    WORKSPACE
-                  </label>
-                  <select
-                    value={currentWorkspace?.id || ''}
-                    onChange={(e) => switchWorkspace(parseInt(e.target.value))}
-                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  >
-                    {workspaces.map((workspace) => (
-                      <option key={workspace.id} value={workspace.id}>
-                        {workspace.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
               {/* Mobile Navigation Links */}
               <div className="p-2">
                 <p className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Menu</p>
-                {navItems.map((item) => (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-4 mx-2 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 mb-1 ${
-                      isActive(item.path)
-                        ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
-                        : 'text-gray-700 hover:bg-gray-100'
-                    }`}
-                  >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                      isActive(item.path) ? 'bg-white/20' : 'bg-gray-100'
-                    }`}>
-                      <FontAwesomeIcon icon={item.icon} className="text-sm" />
-                    </div>
-                    <span>{item.label}</span>
-                  </Link>
-                ))}
+                {navItems.map((item, index) => {
+                  if (item.type === 'dropdown') {
+                    return (
+                      <div key={index} className="mb-1">
+                        <button
+                          onClick={() => setMasterMenuOpen(!masterMenuOpen)}
+                          className={`flex items-center justify-between w-full mx-2 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+                            isMasterActive()
+                              ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
+                              : 'text-gray-700 hover:bg-gray-100'
+                          }`}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                              isMasterActive() ? 'bg-white/20' : 'bg-gray-100'
+                            }`}>
+                              <FontAwesomeIcon icon={item.icon} className="text-sm" />
+                            </div>
+                            <span>{item.label}</span>
+                          </div>
+                          <FontAwesomeIcon
+                            icon={faChevronDown}
+                            className={`text-xs transition-transform duration-300 ${
+                              masterMenuOpen ? 'rotate-180' : ''
+                            }`}
+                          />
+                        </button>
+
+                        {/* Dropdown Items */}
+                        {masterMenuOpen && (
+                          <div className="ml-4 mt-1 space-y-1">
+                            {item.items.map((subItem) => (
+                              <Link
+                                key={subItem.path}
+                                to={subItem.path}
+                                onClick={() => {
+                                  setMobileMenuOpen(false);
+                                  setMasterMenuOpen(false);
+                                }}
+                                className={`flex items-center gap-3 mx-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                  isActive(subItem.path)
+                                    ? 'bg-blue-50 text-blue-600 border-l-4 border-blue-500'
+                                    : 'text-gray-600 hover:bg-gray-50'
+                                }`}
+                              >
+                                <FontAwesomeIcon icon={subItem.icon} className="text-sm" />
+                                <span>{subItem.label}</span>
+                              </Link>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-4 mx-2 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 mb-1 ${
+                        isActive(item.path)
+                          ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                        isActive(item.path) ? 'bg-white/20' : 'bg-gray-100'
+                      }`}>
+                        <FontAwesomeIcon icon={item.icon} className="text-sm" />
+                      </div>
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
               </div>
 
               {/* Mobile Logout */}
