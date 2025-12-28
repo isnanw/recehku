@@ -8,8 +8,16 @@ from datetime import datetime, date
 from decimal import Decimal
 from typing import Tuple, Dict, Any
 import requests
+import pytz
 
 investment_bp = Blueprint('investment', __name__)
+
+# Timezone Indonesia Barat (WIB)
+WIB = pytz.timezone('Asia/Jakarta')
+
+def get_wib_now():
+    """Get current datetime in WIB timezone."""
+    return datetime.now(WIB)
 
 
 def formatCurrency(amount: float) -> str:
@@ -147,8 +155,8 @@ def create_investment() -> Tuple[Dict[str, Any], int]:
             buy_price=buy_price,
             purchase_date=purchase_date,
             notes=data.get('notes'),
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=get_wib_now(),
+            updated_at=get_wib_now()
         )
 
         db.session.add(investment)
@@ -170,7 +178,7 @@ def create_investment() -> Tuple[Dict[str, Any], int]:
                     name='Investasi Emas',
                     type='EXPENSE',
                     parent_id=None,
-                    created_at=datetime.utcnow()
+                    created_at=get_wib_now()
                 )
                 db.session.add(category)
                 db.session.flush()
@@ -184,7 +192,7 @@ def create_investment() -> Tuple[Dict[str, Any], int]:
                 amount=total_value,
                 transaction_date=purchase_date,
                 description=f"Pembelian {data['name']} - {weight}g @ {formatCurrency(float(buy_price))}/g",
-                created_at=datetime.utcnow()
+                created_at=get_wib_now()
             )
             db.session.add(transaction)
             db.session.flush()
@@ -244,7 +252,7 @@ def update_investment(investment_id: int) -> Tuple[Dict[str, Any], int]:
         if 'notes' in data:
             investment.notes = data['notes']
 
-        investment.updated_at = datetime.utcnow()
+        investment.updated_at = get_wib_now()
         db.session.commit()
 
         return {'message': 'Investasi berhasil diperbarui'}, 200
@@ -323,21 +331,21 @@ def get_gold_price() -> Tuple[Dict[str, Any], int]:
                     'name': 'Antam',
                     'buyback': 1050000,
                     'sell': 1100000,
-                    'last_update': datetime.now().isoformat(),
+                    'last_update': get_wib_now().isoformat(),
                     'source': 'Default Price'
                 },
                 'GALERI24': {
                     'name': 'Galeri24',
                     'buyback': 1045000,
                     'sell': 1095000,
-                    'last_update': datetime.now().isoformat(),
+                    'last_update': get_wib_now().isoformat(),
                     'source': 'Default Price'
                 },
                 'UBS': {
                     'name': 'UBS',
                     'buyback': 1048000,
                     'sell': 1098000,
-                    'last_update': datetime.now().isoformat(),
+                    'last_update': get_wib_now().isoformat(),
                     'source': 'Default Price'
                 },
             }
@@ -398,7 +406,7 @@ def set_gold_price() -> Tuple[Dict[str, Any], int]:
             setting.buy_price = Decimal(str(data['buy_price']))
             setting.buyback_price = Decimal(str(data['buyback_price']))
             setting.updated_by = current_user_id
-            setting.updated_at = datetime.utcnow()
+            setting.updated_at = get_wib_now()
             message = f'Harga {data["gold_type"]} berhasil diperbarui'
         else:
             # Create new setting
@@ -408,8 +416,8 @@ def set_gold_price() -> Tuple[Dict[str, Any], int]:
                 buy_price=Decimal(str(data['buy_price'])),
                 buyback_price=Decimal(str(data['buyback_price'])),
                 updated_by=current_user_id,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
+                created_at=get_wib_now(),
+                updated_at=get_wib_now()
             )
             db.session.add(setting)
             message = f'Harga {data["gold_type"]} berhasil ditambahkan'
@@ -489,7 +497,7 @@ def set_all_gold_prices() -> Tuple[Dict[str, Any], int]:
                 setting.buy_price = Decimal(str(buy_price))
                 setting.buyback_price = Decimal(str(buyback_price))
                 setting.updated_by = current_user_id
-                setting.updated_at = datetime.utcnow()
+                setting.updated_at = get_wib_now()
             else:
                 # Create new
                 setting = GoldPriceSetting(
@@ -498,8 +506,8 @@ def set_all_gold_prices() -> Tuple[Dict[str, Any], int]:
                     buy_price=Decimal(str(buy_price)),
                     buyback_price=Decimal(str(buyback_price)),
                     updated_by=current_user_id,
-                    created_at=datetime.utcnow(),
-                    updated_at=datetime.utcnow()
+                    created_at=get_wib_now(),
+                    updated_at=get_wib_now()
                 )
                 db.session.add(setting)
 
@@ -545,7 +553,7 @@ def update_current_price(investment_id: int) -> Tuple[Dict[str, Any], int]:
             return {'error': 'current_price harus diisi'}, 400
 
         investment.current_price = Decimal(str(data['current_price']))
-        investment.updated_at = datetime.utcnow()
+        investment.updated_at = get_wib_now()
         db.session.commit()
 
         return {
@@ -609,7 +617,7 @@ def auto_update_all_prices() -> Tuple[Dict[str, Any], int]:
                 # Use buyback price for current price
                 buyback_price = prices[investment.gold_type]['buyback']
                 investment.current_price = Decimal(str(buyback_price))
-                investment.updated_at = datetime.utcnow()
+                investment.updated_at = get_wib_now()
                 updated_count += 1
 
         db.session.commit()
@@ -618,7 +626,7 @@ def auto_update_all_prices() -> Tuple[Dict[str, Any], int]:
             'message': f'{updated_count} investasi berhasil diperbarui',
             'updated_count': updated_count,
             'total_investments': len(investments),
-            'timestamp': datetime.now().isoformat()
+            'timestamp': get_wib_now().isoformat()
         }, 200
 
     except Exception as e:

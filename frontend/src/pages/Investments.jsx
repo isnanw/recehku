@@ -22,7 +22,9 @@ import {
   faChartLine as faStock,
   faBitcoinSign,
   faHome,
-  faBriefcase
+  faBriefcase,
+  faClock,
+  faExternalLinkAlt
 } from '@fortawesome/free-solid-svg-icons';
 import toast from 'react-hot-toast';
 import Swal from 'sweetalert2';
@@ -363,11 +365,11 @@ const Investments = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {Object.entries(goldPrices).map(([key, price]) => (
             <div key={key} className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl p-4 border-2 border-yellow-200 shadow-lg">
-              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2 mb-2">
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2 mb-3">
                 <FontAwesomeIcon icon={faCoins} className="text-yellow-600" />
                 {price.name}
               </h3>
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <div>
                   <p className="text-xs text-gray-600">Buyback</p>
                   <p className="text-lg font-bold text-yellow-700">{formatCurrency(price.buyback)}</p>
@@ -378,6 +380,44 @@ const Investments = () => {
                 </div>
               </div>
               <p className="text-xs text-gray-500 mt-2">per gram</p>
+
+              {/* Last Update & Source */}
+              <div className="mt-3 pt-3 border-t border-yellow-200 space-y-1">
+                <div className="flex items-center gap-2 text-xs text-gray-600">
+                  <FontAwesomeIcon icon={faClock} className="text-gray-500" />
+                  <span>{new Date(price.last_update).toLocaleString('id-ID', {
+                    timeZone: 'Asia/Jakarta',
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })} WIB</span>
+                </div>
+                {price.source && (
+                  <div className="flex items-center gap-2">
+                    {price.source === 'Workspace Settings' ? (
+                      <span className="text-xs text-blue-600 font-medium">
+                        📝 {price.source}
+                      </span>
+                    ) : price.source === 'Default Price' ? (
+                      <span className="text-xs text-gray-600 font-medium">
+                        🔖 {price.source}
+                      </span>
+                    ) : (
+                      <a
+                        href="https://brankaslm.com/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-600 font-medium hover:text-blue-800 hover:underline flex items-center gap-1 transition-colors"
+                      >
+                        🔗 {price.source}
+                        <FontAwesomeIcon icon={faExternalLinkAlt} className="text-[10px]" />
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           ))}
         </div>
