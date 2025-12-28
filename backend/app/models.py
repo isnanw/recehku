@@ -233,6 +233,7 @@ class GoldPriceSetting(db.Model):
     gold_type = db.Column(db.String(50), nullable=False)  # ANTAM, GALERI24, UBS
     buy_price = db.Column(db.Numeric(15, 2), nullable=False)  # Harga jual (ke customer)
     buyback_price = db.Column(db.Numeric(15, 2), nullable=False)  # Harga buyback (beli kembali)
+    source_link = db.Column(db.String(500), nullable=True)  # Link sumber harga emas
     updated_by = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

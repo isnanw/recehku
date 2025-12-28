@@ -321,7 +321,8 @@ def get_gold_price() -> Tuple[Dict[str, Any], int]:
                         'buyback': float(setting.buyback_price),
                         'sell': float(setting.buy_price),
                         'last_update': setting.updated_at.isoformat(),
-                        'source': 'Workspace Settings'
+                        'source': 'Workspace Settings',
+                        'source_link': setting.source_link
                     }
 
         # Priority 2: If no workspace settings, use default manual prices
@@ -405,6 +406,7 @@ def set_gold_price() -> Tuple[Dict[str, Any], int]:
             # Update existing setting
             setting.buy_price = Decimal(str(data['buy_price']))
             setting.buyback_price = Decimal(str(data['buyback_price']))
+            setting.source_link = data.get('source_link')
             setting.updated_by = current_user_id
             setting.updated_at = get_wib_now()
             message = f'Harga {data["gold_type"]} berhasil diperbarui'
@@ -415,6 +417,7 @@ def set_gold_price() -> Tuple[Dict[str, Any], int]:
                 gold_type=data['gold_type'],
                 buy_price=Decimal(str(data['buy_price'])),
                 buyback_price=Decimal(str(data['buyback_price'])),
+                source_link=data.get('source_link'),
                 updated_by=current_user_id,
                 created_at=get_wib_now(),
                 updated_at=get_wib_now()
@@ -482,6 +485,7 @@ def set_all_gold_prices() -> Tuple[Dict[str, Any], int]:
 
             buy_price = price_data.get('buy_price')
             buyback_price = price_data.get('buyback_price')
+            source_link = price_data.get('source_link')
 
             if not buy_price or not buyback_price:
                 continue
@@ -496,6 +500,7 @@ def set_all_gold_prices() -> Tuple[Dict[str, Any], int]:
                 # Update existing
                 setting.buy_price = Decimal(str(buy_price))
                 setting.buyback_price = Decimal(str(buyback_price))
+                setting.source_link = source_link
                 setting.updated_by = current_user_id
                 setting.updated_at = get_wib_now()
             else:
@@ -505,6 +510,7 @@ def set_all_gold_prices() -> Tuple[Dict[str, Any], int]:
                     gold_type=gold_type,
                     buy_price=Decimal(str(buy_price)),
                     buyback_price=Decimal(str(buyback_price)),
+                    source_link=source_link,
                     updated_by=current_user_id,
                     created_at=get_wib_now(),
                     updated_at=get_wib_now()

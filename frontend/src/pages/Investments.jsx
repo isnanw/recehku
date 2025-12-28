@@ -58,9 +58,9 @@ const Investments = () => {
   const [goldPrices, setGoldPrices] = useState(null);
 
   const [priceSettings, setPriceSettings] = useState({
-    ANTAM: { buy_price: '', buyback_price: '' },
-    GALERI24: { buy_price: '', buyback_price: '' },
-    UBS: { buy_price: '', buyback_price: '' }
+    ANTAM: { buy_price: '', buyback_price: '', source_link: '' },
+    GALERI24: { buy_price: '', buyback_price: '', source_link: '' },
+    UBS: { buy_price: '', buyback_price: '', source_link: '' }
   });
 
   // Calculate price per gram from total price
@@ -118,7 +118,8 @@ const Investments = () => {
         Object.entries(response.data.prices).forEach(([key, price]) => {
           settings[key] = {
             buy_price: price.sell.toString(),
-            buyback_price: price.buyback.toString()
+            buyback_price: price.buyback.toString(),
+            source_link: price.source_link || ''
           };
         });
         setPriceSettings(settings);
@@ -244,7 +245,8 @@ const Investments = () => {
       const prices = Object.entries(priceSettings).map(([gold_type, prices]) => ({
         gold_type,
         buy_price: parseFloat(prices.buy_price),
-        buyback_price: parseFloat(prices.buyback_price)
+        buyback_price: parseFloat(prices.buyback_price),
+        source_link: prices.source_link || null
       })).filter(p => p.buy_price && p.buyback_price);
 
       await api.post('/investments/gold-price/settings/bulk', {
@@ -362,7 +364,7 @@ const Investments = () => {
 
       {/* Gold Price Cards */}
       {goldPrices && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-4">
           {Object.entries(goldPrices).map(([key, price]) => (
             <div key={key} className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl p-4 border-2 border-yellow-200 shadow-lg">
               <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2 mb-3">
@@ -394,28 +396,21 @@ const Investments = () => {
                     minute: '2-digit'
                   })} WIB</span>
                 </div>
-                {price.source && (
-                  <div className="flex items-center gap-2">
-                    {price.source === 'Workspace Settings' ? (
-                      <span className="text-xs text-blue-600 font-medium">
-                        📝 {price.source}
-                      </span>
-                    ) : price.source === 'Default Price' ? (
-                      <span className="text-xs text-gray-600 font-medium">
-                        🔖 {price.source}
-                      </span>
-                    ) : (
-                      <a
-                        href="https://brankaslm.com/"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-blue-600 font-medium hover:text-blue-800 hover:underline flex items-center gap-1 transition-colors"
-                      >
-                        🔗 {price.source}
-                        <FontAwesomeIcon icon={faExternalLinkAlt} className="text-[10px]" />
-                      </a>
-                    )}
-                  </div>
+                {price.source_link ? (
+                  <a
+                    href={price.source_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-600 font-medium hover:text-blue-800 hover:underline flex items-center gap-1 transition-colors"
+                  >
+                    <FontAwesomeIcon icon={faExternalLinkAlt} className="text-[10px]" />
+                    {price.source_link}
+                  </a>
+                ) : price.source && (
+                  <span className="text-xs text-gray-600 font-medium flex items-center gap-1">
+                    <FontAwesomeIcon icon={faTag} className="text-[10px]" />
+                    {price.source}
+                  </span>
                 )}
               </div>
             </div>
@@ -608,7 +603,7 @@ const Investments = () => {
             <div>
               <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-pink-100 flex items-center justify-center">
-                  📅
+                  <FontAwesomeIcon icon={faCalendar} className="text-pink-600 text-sm" />
                 </span>
                 Tanggal Pembelian <span className="text-red-500">*</span>
               </label>
@@ -739,12 +734,13 @@ const Investments = () => {
                 )}
               </div>
 
-              <div className="text-xs text-gray-500 mb-4">
-                <FontAwesomeIcon icon={faCalendar} className="mr-1" /> Dibeli: {new Date(investment.purchase_date).toLocaleDateString('id-ID', {
+              <div className="text-xs text-gray-500 mb-4 flex items-center gap-1">
+                <FontAwesomeIcon icon={faCalendar} />
+                <span>Dibeli: {new Date(investment.purchase_date).toLocaleDateString('id-ID', {
                   day: '2-digit',
                   month: 'long',
                   year: 'numeric'
-                })}
+                })}</span>
               </div>
 
               {investment.notes && (
@@ -827,6 +823,22 @@ const Investments = () => {
                   />
                 </div>
               </div>
+              <div className="mt-3">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <FontAwesomeIcon icon={faExternalLinkAlt} className="mr-1" />
+                  Link Sumber (Opsional)
+                </label>
+                <input
+                  type="url"
+                  value={priceSettings.ANTAM.source_link}
+                  onChange={(e) => setPriceSettings({
+                    ...priceSettings,
+                    ANTAM: { ...priceSettings.ANTAM, source_link: e.target.value }
+                  })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                  placeholder="https://tokopedia.com/..."
+                />
+              </div>
             </div>
 
             {/* GALERI24 */}
@@ -865,6 +877,22 @@ const Investments = () => {
                   />
                 </div>
               </div>
+              <div className="mt-3">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <FontAwesomeIcon icon={faExternalLinkAlt} className="mr-1" />
+                  Link Sumber (Opsional)
+                </label>
+                <input
+                  type="url"
+                  value={priceSettings.GALERI24.source_link}
+                  onChange={(e) => setPriceSettings({
+                    ...priceSettings,
+                    GALERI24: { ...priceSettings.GALERI24, source_link: e.target.value }
+                  })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                  placeholder="https://tokopedia.com/..."
+                />
+              </div>
             </div>
 
             {/* UBS */}
@@ -902,6 +930,22 @@ const Investments = () => {
                     required
                   />
                 </div>
+              </div>
+              <div className="mt-3">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <FontAwesomeIcon icon={faExternalLinkAlt} className="mr-1" />
+                  Link Sumber (Opsional)
+                </label>
+                <input
+                  type="url"
+                  value={priceSettings.UBS.source_link}
+                  onChange={(e) => setPriceSettings({
+                    ...priceSettings,
+                    UBS: { ...priceSettings.UBS, source_link: e.target.value }
+                  })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                  placeholder="https://tokopedia.com/..."
+                />
               </div>
             </div>
           </div>
