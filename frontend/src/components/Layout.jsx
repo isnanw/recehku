@@ -15,7 +15,8 @@ import {
   faUser,
   faChevronDown,
   faCog,
-  faCircleUser
+  faCircleUser,
+  faCoins
 } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../context/AuthContext';
 import { useWorkspace } from '../context/WorkspaceContext';
@@ -62,6 +63,7 @@ const Layout = () => {
   const navItems = [
     { path: '/dashboard', label: 'Dashboard', icon: faChartLine },
     { path: '/transactions', label: 'Transaksi', icon: faExchangeAlt },
+    { path: '/investments', label: 'Investasi', icon: faCoins },
     { path: '/accounts', label: 'Akun', icon: faWallet },
     { path: '/categories', label: 'Kategori', icon: faFolderOpen },
     { path: '/members', label: 'Members', icon: faUsers },
@@ -344,7 +346,9 @@ const Layout = () => {
       {/* Main Content with padding for fixed navbar */}
       <main className="pt-20 min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Outlet />
+          <div className="animate-fadeIn">
+            <Outlet />
+          </div>
         </div>
       </main>
     </div>

@@ -81,7 +81,8 @@ def register() -> Tuple[Dict[str, Any], int]:
             'user': {
                 'id': user.id,
                 'email': user.email,
-                'name': user.name
+                'name': user.name,
+                'is_owner': user.is_owner
             },
             'workspace': {
                 'id': workspace.id,
@@ -145,7 +146,8 @@ def login() -> Tuple[Dict[str, Any], int]:
             'user': {
                 'id': user.id,
                 'email': user.email,
-                'name': user.name
+                'name': user.name,
+                'is_owner': user.is_owner
             },
             'workspaces': workspaces
         }, 200
@@ -215,7 +217,8 @@ def get_current_user() -> Tuple[Dict[str, Any], int]:
             'user': {
                 'id': user.id,
                 'email': user.email,
-                'name': user.name
+                'name': user.name,
+                'is_owner': user.is_owner
             },
             'workspaces': workspaces
         }, 200

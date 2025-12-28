@@ -10,6 +10,7 @@ import Dashboard from './pages/Dashboard';
 import Accounts from './pages/Accounts';
 import Categories from './pages/Categories';
 import Transactions from './pages/Transactions';
+import Investments from './pages/Investments';
 import Members from './pages/Members';
 import Layout from './components/Layout';
 
@@ -53,6 +54,7 @@ function App() {
               <Route path="/accounts" element={<Accounts />} />
               <Route path="/categories" element={<Categories />} />
               <Route path="/transactions" element={<Transactions />} />
+              <Route path="/investments" element={<Investments />} />
               <Route path="/members" element={<Members />} />
             </Route>
 

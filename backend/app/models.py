@@ -165,3 +165,86 @@ class WorkspaceInvitation(db.Model):
 
     def __repr__(self) -> str:
         return f'<WorkspaceInvitation {self.email} to {self.workspace_id}>'
+
+
+class Investment(db.Model):
+    """Investment model for tracking gold assets."""
+    __tablename__ = 'investment'
+
+    id = db.Column(db.Integer, primary_key=True)
+    workspace_id = db.Column(db.Integer, db.ForeignKey('workspaces.id'), nullable=False, index=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True, index=True)
+    transaction_id = db.Column(db.Integer, db.ForeignKey('transactions.id', ondelete='SET NULL'), nullable=True, index=True)
+    name = db.Column(db.String(100), nullable=False)  # e.g., "Investasi Emas Antam"
+    type = db.Column(db.String(50), nullable=False)  # GOLD (kept for backward compatibility)
+    gold_type = db.Column(db.String(50), nullable=True)  # ANTAM, GALERI24, UBS, PEGADAIAN
+    weight = db.Column(db.Numeric(10, 2), nullable=True)  # Weight in grams (for gold)
+    quantity = db.Column(db.Numeric(15, 4), nullable=False)  # Amount owned (backward compatibility)
+    buy_price = db.Column(db.Numeric(15, 2), nullable=False)  # Price per gram
+    current_price = db.Column(db.Numeric(15, 2), nullable=True)  # Current market price per gram
+    purchase_date = db.Column(db.Date, nullable=False)
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # Relationships
+    workspace = db.relationship('Workspace', backref=db.backref('investments', lazy='dynamic', cascade='all, delete-orphan'))
+    account = db.relationship('Account', backref=db.backref('investments', lazy='dynamic'))
+    transaction = db.relationship('Transaction', backref=db.backref('investment', uselist=False))
+
+    def __repr__(self) -> str:
+        return f'<Investment {self.name}>'
+
+    @property
+    def total_buy_value(self) -> Decimal:
+        """Total amount spent on this investment."""
+        effective_quantity = Decimal(self.weight) if self.weight else Decimal(self.quantity)
+        return effective_quantity * Decimal(self.buy_price)
+
+    @property
+    def total_current_value(self) -> Optional[Decimal]:
+        """Current market value of investment."""
+        if self.current_price is None:
+            return None
+        effective_quantity = Decimal(self.weight) if self.weight else Decimal(self.quantity)
+        return effective_quantity * Decimal(self.current_price)
+
+    @property
+    def profit_loss(self) -> Optional[Decimal]:
+        """Profit or loss amount."""
+        if self.current_price is None:
+            return None
+        return self.total_current_value - self.total_buy_value
+
+    @property
+    def profit_loss_percentage(self) -> Optional[Decimal]:
+        """Profit or loss as percentage."""
+        if self.current_price is None or self.total_buy_value == 0:
+            return None
+        return (self.profit_loss / self.total_buy_value) * 100
+
+
+class GoldPriceSetting(db.Model):
+    """Gold price settings configured by workspace owner."""
+    __tablename__ = 'gold_price_settings'
+
+    id = db.Column(db.Integer, primary_key=True)
+    workspace_id = db.Column(db.Integer, db.ForeignKey('workspaces.id', ondelete='CASCADE'), nullable=False)
+    gold_type = db.Column(db.String(50), nullable=False)  # ANTAM, GALERI24, UBS
+    buy_price = db.Column(db.Numeric(15, 2), nullable=False)  # Harga jual (ke customer)
+    buyback_price = db.Column(db.Numeric(15, 2), nullable=False)  # Harga buyback (beli kembali)
+    updated_by = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    workspace = db.relationship('Workspace', backref=db.backref('gold_price_settings', lazy='dynamic', cascade='all, delete-orphan'))
+    user = db.relationship('User', backref=db.backref('gold_price_settings', lazy='dynamic'))
+
+    # Unique constraint
+    __table_args__ = (
+        db.Index('idx_gold_price_workspace_type', 'workspace_id', 'gold_type', unique=True),
+    )
+
+    def __repr__(self) -> str:
+        return f'<GoldPriceSetting {self.gold_type} - {self.buy_price}>'

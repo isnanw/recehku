@@ -10,7 +10,12 @@ import {
   faPlus,
   faEdit,
   faTrash,
-  faMoneyBillWave
+  faMoneyBillWave,
+  faCodeMerge,
+  faMoneyBill,
+  faLightbulb,
+  faBriefcase,
+  faTimes
 } from '@fortawesome/free-solid-svg-icons';
 import toast from 'react-hot-toast';
 import Swal from 'sweetalert2';
@@ -148,6 +153,65 @@ const Accounts = () => {
     setFormData({ name: '', type: 'Bank', initial_balance: '' });
   };
 
+  const handleMergeAccount = async (sourceAccount) => {
+    const accountOptions = accounts
+      .filter(acc => acc.id !== sourceAccount.id)
+      .reduce((obj, acc) => {
+        obj[acc.id] = acc.name;
+        return obj;
+      }, {});
+
+    if (Object.keys(accountOptions).length === 0) {
+      await Swal.fire({
+        title: 'Tidak Ada Akun Tujuan',
+        text: 'Tidak ada akun lain untuk menggabungkan transaksi.',
+        icon: 'info',
+        confirmButtonColor: '#3B82F6',
+      });
+      return;
+    }
+
+    const { value: targetAccountId } = await Swal.fire({
+      title: 'Gabungkan Akun',
+      html: `
+        <div class="text-left">
+          <p class="mb-3">Semua transaksi dari akun <strong>"${sourceAccount.name}"</strong> akan dipindahkan ke akun tujuan.</p>
+          <p class="text-sm text-gray-600 bg-yellow-50 p-3 rounded border border-yellow-200 mb-3">
+            ⚠️ <strong>Perhatian:</strong> Akun "${sourceAccount.name}" akan dihapus setelah penggabungan.
+          </p>
+        </div>
+      `,
+      input: 'select',
+      inputOptions: accountOptions,
+      inputPlaceholder: 'Pilih akun tujuan',
+      showCancelButton: true,
+      confirmButtonColor: '#3B82F6',
+      cancelButtonColor: '#6B7280',
+      confirmButtonText: 'Gabungkan',
+      cancelButtonText: 'Batal',
+      inputValidator: (value) => {
+        if (!value) {
+          return 'Pilih akun tujuan terlebih dahulu!';
+        }
+      }
+    });
+
+    if (targetAccountId) {
+      const loadingToast = toast.loading('Menggabungkan akun...');
+      try {
+        const response = await api.post(`/accounts/${sourceAccount.id}/merge`, {
+          target_account_id: parseInt(targetAccountId),
+          workspace_id: currentWorkspace.id,
+        });
+        toast.success(response.data.message, { id: loadingToast });
+        fetchAccounts();
+      } catch (error) {
+        toast.error(error.response?.data?.error || 'Gagal menggabungkan akun', { id: loadingToast });
+        console.error('Failed to merge account:', error);
+      }
+    }
+  };
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -255,10 +319,10 @@ const Accounts = () => {
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-medium"
               required
             >
-              <option value="Bank">🏦 Bank</option>
-              <option value="Cash">💵 Tunai</option>
-              <option value="E-Wallet">📱 E-Wallet</option>
-              <option value="Credit Card">💳 Kartu Kredit</option>
+              <option value="Bank">Bank</option>
+              <option value="Cash">Tunai</option>
+              <option value="E-Wallet">E-Wallet</option>
+              <option value="Credit Card">Kartu Kredit</option>
             </select>
           </div>
 
@@ -277,7 +341,7 @@ const Accounts = () => {
               required
             />
             <p className="mt-2 text-sm text-gray-500 flex items-center gap-1">
-              💡 Masukkan saldo awal akun ini
+              <FontAwesomeIcon icon={faLightbulb} className="text-yellow-500" /> Masukkan saldo awal akun ini
             </p>
           </div>
 
@@ -294,7 +358,7 @@ const Accounts = () => {
               onClick={handleCloseModal}
               className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-all duration-300 flex items-center gap-2"
             >
-              ✕ Batal
+              <FontAwesomeIcon icon={faTimes} /> Batal
             </button>
           </div>
         </form>
@@ -303,7 +367,9 @@ const Accounts = () => {
       {/* Accounts Grid */}
       {accounts.length === 0 ? (
         <div className="card text-center py-12">
-          <div className="text-6xl mb-4">💼</div>
+          <div className="text-6xl mb-4">
+            <FontAwesomeIcon icon={faBriefcase} className="text-gray-400" />
+          </div>
           <h3 className="text-xl font-semibold text-gray-900 mb-2">Belum ada akun</h3>
           <p className="text-gray-600 mb-6">Buat akun pertama Anda untuk mulai melacak keuangan</p>
           <button
@@ -386,28 +452,24 @@ const Accounts = () => {
                   </button>
                 )}
                 {can('delete_account') && (
-                  <div className="relative flex-1 group/delete">
-                    <button
-                      onClick={() => handleDelete(account.id, account.transaction_count)}
-                      disabled={account.transaction_count > 0}
-                    className={`w-full px-4 py-3 rounded-xl transition-all duration-300 font-semibold text-sm flex items-center justify-center gap-2 ${
-                      account.transaction_count > 0
-                        ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                        : 'bg-gradient-to-r from-red-600 to-pink-600 text-white hover:from-red-700 hover:to-pink-700 shadow-lg hover:shadow-xl transform hover:scale-105'
-                    }`}
-                  >
-                    <FontAwesomeIcon icon={faTrash} /> Hapus
-                  </button>
-                  {account.transaction_count > 0 && (
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-4 py-3 bg-gray-900 text-white text-xs rounded-2xl opacity-0 group-hover/delete:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 shadow-2xl">
-                      <div className="text-center">
-                        <div className="font-bold">Akun Terpakai</div>
-                        <div className="text-gray-300 mt-1">{account.transaction_count} transaksi</div>
-                      </div>
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900"></div>
-                    </div>
-                  )}
-                  </div>
+                  <>
+                    {account.transaction_count > 0 ? (
+                      <button
+                        onClick={() => handleMergeAccount(account)}
+                        className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-300 font-semibold text-sm flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105"
+                        title="Gabungkan akun ini dengan akun lain"
+                      >
+                        <FontAwesomeIcon icon={faCodeMerge} /> Gabung
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleDelete(account.id, account.transaction_count)}
+                        className="flex-1 px-4 py-3 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-xl hover:from-red-700 hover:to-pink-700 transition-all duration-300 font-semibold text-sm flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105"
+                      >
+                        <FontAwesomeIcon icon={faTrash} /> Hapus
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </div>

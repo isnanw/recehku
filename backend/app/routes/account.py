@@ -333,3 +333,110 @@ def delete_account(account_id: int) -> Tuple[Dict[str, Any], int]:
     except Exception as e:
         db.session.rollback()
         return {'error': f'Gagal menghapus akun: {str(e)}'}, 500
+
+
+@account_bp.route('/<int:account_id>/merge', methods=['POST'])
+@jwt_required()
+@require_role('Owner', 'Admin')
+def merge_accounts(account_id: int) -> Tuple[Dict[str, Any], int]:
+    """
+    Merge source account into target account.
+    All transactions from source account will be moved to target account,
+    and source account will be deleted.
+
+    Path params:
+        account_id: int (source account id)
+
+    Request body:
+        target_account_id: int (required) - Account to merge into
+        workspace_id: int (required)
+
+    Returns:
+        JSON response with success message
+    """
+    try:
+        current_user_id = int(get_jwt_identity())
+        data = request.get_json()
+
+        target_account_id = data.get('target_account_id')
+        workspace_id = data.get('workspace_id')
+
+        if not target_account_id or not workspace_id:
+            return {'error': 'target_account_id dan workspace_id harus diisi'}, 400
+
+        if account_id == target_account_id:
+            return {'error': 'Tidak dapat menggabungkan akun dengan dirinya sendiri'}, 400
+
+        # Check workspace access
+        if not check_workspace_access(current_user_id, workspace_id):
+            return {'error': 'Anda tidak memiliki akses ke workspace ini'}, 403
+
+        # Get source account
+        source_account = Account.query.filter_by(
+            id=account_id,
+            workspace_id=workspace_id
+        ).first()
+
+        if not source_account:
+            return {'error': 'Akun sumber tidak ditemukan'}, 404
+
+        # Get target account
+        target_account = Account.query.filter_by(
+            id=target_account_id,
+            workspace_id=workspace_id
+        ).first()
+
+        if not target_account:
+            return {'error': 'Akun tujuan tidak ditemukan'}, 404
+
+        # Move all transactions from source to target
+        # Update transactions where source_account is the main account
+        Transaction.query.filter_by(account_id=account_id).update({
+            'account_id': target_account_id
+        })
+
+        # Update transactions where source_account is the transfer destination
+        Transaction.query.filter_by(transfer_to_account_id=account_id).update({
+            'transfer_to_account_id': target_account_id
+        })
+
+        # Recalculate target account balance
+        income = db.session.query(func.sum(Transaction.amount)).filter(
+            Transaction.account_id == target_account_id,
+            Transaction.type == 'INCOME'
+        ).scalar() or Decimal('0')
+
+        expense = db.session.query(func.sum(Transaction.amount)).filter(
+            Transaction.account_id == target_account_id,
+            Transaction.type == 'EXPENSE'
+        ).scalar() or Decimal('0')
+
+        transfer_out = db.session.query(func.sum(Transaction.amount)).filter(
+            Transaction.account_id == target_account_id,
+            Transaction.type == 'TRANSFER'
+        ).scalar() or Decimal('0')
+
+        transfer_in = db.session.query(func.sum(Transaction.amount)).filter(
+            Transaction.transfer_to_account_id == target_account_id,
+            Transaction.type == 'TRANSFER'
+        ).scalar() or Decimal('0')
+
+        new_balance = target_account.initial_balance + income - expense - transfer_out + transfer_in
+        target_account.current_balance = new_balance
+
+        # Delete source account
+        db.session.delete(source_account)
+        db.session.commit()
+
+        return {
+            'message': f'Akun "{source_account.name}" berhasil digabungkan ke "{target_account.name}"',
+            'target_account': {
+                'id': target_account.id,
+                'name': target_account.name,
+                'current_balance': float(target_account.current_balance)
+            }
+        }, 200
+
+    except Exception as e:
+        db.session.rollback()
+        return {'error': f'Gagal menggabungkan akun: {str(e)}'}, 500

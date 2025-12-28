@@ -16,7 +16,10 @@ import {
   faTrash,
   faPlus,
   faInbox,
-  faEllipsisVertical
+  faEllipsisVertical,
+  faMoneyBillTransfer,
+  faDollarSign,
+  faStickyNote
 } from '@fortawesome/free-solid-svg-icons';
 import toast from 'react-hot-toast';
 import Swal from 'sweetalert2';
@@ -487,9 +490,9 @@ const Transaksi = () => {
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-medium"
                   required
                 >
-                  <option value="EXPENSE">💸 Pengeluaran</option>
-                  <option value="INCOME">💰 Pemasukan</option>
-                  <option value="TRANSFER">🔄 Transfer</option>
+                  <option value="EXPENSE">Pengeluaran</option>
+                  <option value="INCOME">Pemasukan</option>
+                  <option value="TRANSFER">Transfer</option>
                 </select>
               </div>
 
@@ -605,7 +608,7 @@ const Transaksi = () => {
             <div className="md:col-span-2">
               <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-gray-100 flex items-center justify-center">
-                  📝
+                  <FontAwesomeIcon icon={faStickyNote} className="text-gray-600 text-xs" />
                 </span>
                 Deskripsi (Opsional)
               </label>
@@ -660,10 +663,10 @@ const Transaksi = () => {
           </button>
         </div>
 
-        <div className={`overflow-hidden transition-all duration-300 ${isFilterExpanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
+        <div className={`transition-all duration-300 ${isFilterExpanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
           <div className="px-6 pb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="relative date-range-picker-wrapper">
+          <div className="relative date-range-picker-wrapper z-[100]">
             <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
               <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-500" />
               Rentang Tanggal
@@ -687,7 +690,7 @@ const Transaksi = () => {
               />
             </div>
             {showDateRangePicker && (
-              <div className="absolute z-50 mt-2 bg-white rounded-lg shadow-xl border border-gray-200">
+              <div className="absolute z-[9999] mt-2 bg-white rounded-lg shadow-xl border border-gray-200">
                 <DateRangePicker
                   ranges={dateRange}
                   onChange={(item) => {
@@ -1110,7 +1113,7 @@ const Transaksi = () => {
                     )}
                     {txn.description && (
                       <div className="flex items-start gap-2">
-                        <span className="text-gray-400">📝</span>
+                        <FontAwesomeIcon icon={faStickyNote} className="text-gray-400" />
                         <span className="text-gray-600 flex-1">{txn.description}</span>
                       </div>
                     )}

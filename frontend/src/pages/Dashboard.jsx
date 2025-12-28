@@ -15,7 +15,8 @@ import {
   faEye,
   faEyeSlash,
   faChevronLeft,
-  faChevronRight
+  faChevronRight,
+  faCoins
 } from '@fortawesome/free-solid-svg-icons';
 import api from '../utils/api';
 import {
@@ -235,6 +236,8 @@ const Dashboard = () => {
   const [accountsLoading, setAccountsLoading] = useState(false);
   const [incomeByCategory, setIncomeByCategory] = useState(null);
   const [incomeByCategoryLoading, setIncomeByCategoryLoading] = useState(false);
+  const [investments, setInvestments] = useState([]);
+  const [investmentsLoading, setInvestmentsLoading] = useState(false);
   const deriveDebounceRef = useRef(null);
   const [hideBalance, setHideBalance] = useState(() => {
     try {
@@ -260,6 +263,7 @@ const Dashboard = () => {
       fetchAnalytics();
       fetchDailyComparison();
       fetchAccounts();
+      fetchInvestments();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentWorkspace, selectedPeriod]);
@@ -433,6 +437,22 @@ const Dashboard = () => {
     }
   };
 
+  const fetchInvestments = async () => {
+    if (!currentWorkspace) return;
+    try {
+      setInvestmentsLoading(true);
+      const resp = await api.get('/investments', {
+        params: { workspace_id: currentWorkspace.id },
+      });
+      setInvestments(resp.data.investments || []);
+    } catch (err) {
+      console.error('Gagal memuat investasi:', err);
+      setInvestments([]);
+    } finally {
+      setInvestmentsLoading(false);
+    }
+  };
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -494,8 +514,28 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <div className="space-y-6 animate-pulse">
+        {/* Header Skeleton */}
+        <div className="bg-white rounded-2xl p-6 shadow-lg">
+          <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+        </div>
+
+        {/* Cards Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white rounded-2xl p-6 shadow-lg">
+              <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
+              <div className="h-8 bg-gray-200 rounded w-3/4"></div>
+            </div>
+          ))}
+        </div>
+
+        {/* Chart Skeleton */}
+        <div className="bg-white rounded-2xl p-6 shadow-lg">
+          <div className="h-6 bg-gray-200 rounded w-1/3 mb-6"></div>
+          <div className="h-64 bg-gray-200 rounded"></div>
+        </div>
       </div>
     );
   }
@@ -623,7 +663,7 @@ const Dashboard = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
         {/* Total Balance Card */}
         <div className="group relative overflow-hidden bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 p-6 hover:scale-105 animate-scaleIn">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
@@ -712,6 +752,54 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+
+        {/* Investment Profit/Loss Card */}
+        {(() => {
+          const totalBuyValue = investments.reduce((sum, inv) => sum + (inv.total_buy_value || 0), 0);
+          const totalCurrentValue = investments.reduce((sum, inv) => sum + (inv.total_current_value || 0), 0);
+          const totalProfitLoss = totalCurrentValue - totalBuyValue;
+          const isProfit = totalProfitLoss >= 0;
+
+          return (
+            <div className={`group relative overflow-hidden rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 p-6 hover:scale-105 animate-scaleIn ${
+              isProfit
+                ? 'bg-gradient-to-br from-yellow-500 via-yellow-600 to-orange-600'
+                : 'bg-gradient-to-br from-gray-500 via-gray-600 to-slate-600'
+            }`} style={{ animationDelay: '400ms' }}>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
+              <div className="relative">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                    <FontAwesomeIcon icon={faCoins} className="text-white text-xl" />
+                  </div>
+                  <div className="text-xs font-semibold bg-white/20 px-3 py-1 rounded-full text-white">
+                    INVESTASI
+                  </div>
+                </div>
+                <p className="text-sm font-medium mb-1 text-white/90">Profit/Loss Investasi</p>
+                {investmentsLoading ? (
+                  <p className="text-2xl font-bold text-white">Loading...</p>
+                ) : investments.length === 0 ? (
+                  <p className="text-xl font-bold text-white">Belum ada data</p>
+                ) : (
+                  <>
+                    <p className="text-3xl font-bold text-white mb-2">
+                      {isProfit ? '+' : ''}{formatCurrency(totalProfitLoss)}
+                    </p>
+                    <div className="flex items-center gap-2 text-sm">
+                      <div className="px-2 py-1 rounded-lg bg-white/20">
+                        <span className="text-white font-semibold">
+                          {totalBuyValue > 0 ? ((totalProfitLoss / totalBuyValue) * 100).toFixed(2) : '0'}%
+                        </span>
+                        <span className="text-white/90"> return</span>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Daily Comparison Chart - Full Width */}

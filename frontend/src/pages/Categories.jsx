@@ -266,10 +266,15 @@ const Kategori = () => {
                       </button>
                       <div className="relative group/delete">
                         <button
-                          onClick={() => !category.is_used && handleDelete(category.id)}
-                          disabled={category.is_used}
+                          onClick={() => {
+                            const hasSubcategories = category.subcategories && category.subcategories.length > 0;
+                            if (!category.is_used && !hasSubcategories) {
+                              handleDelete(category.id);
+                            }
+                          }}
+                          disabled={category.is_used || (category.subcategories && category.subcategories.length > 0)}
                           className={`px-3 py-2 text-xs font-semibold rounded-xl flex items-center gap-2 transition-all duration-300 ${
-                            category.is_used
+                            category.is_used || (category.subcategories && category.subcategories.length > 0)
                               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                               : 'bg-red-50 text-red-700 hover:bg-red-100 transform hover:scale-105'
                           }`}
@@ -277,9 +282,13 @@ const Kategori = () => {
                           <FontAwesomeIcon icon={faTrash} />
                           Hapus
                         </button>
-                        {category.is_used && (
+                        {(category.is_used || (category.subcategories && category.subcategories.length > 0)) && (
                           <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-3 px-4 py-3 bg-gray-900 text-white text-xs rounded-2xl opacity-0 group-hover/delete:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10 shadow-2xl">
-                            <div className="font-bold">Kategori sudah digunakan dalam transaksi</div>
+                            <div className="font-bold">
+                              {category.is_used
+                                ? 'Kategori sudah digunakan dalam transaksi'
+                                : 'Hapus subkategori terlebih dahulu'}
+                            </div>
                             <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
                               <div className="border-4 border-transparent border-t-gray-900"></div>
                             </div>
@@ -305,7 +314,7 @@ const Kategori = () => {
                               <FontAwesomeIcon icon={faEdit} />
                               Ubah
                             </button>
-                            <div className="relative group">
+                            <div className="relative group/subsdelincome">
                               <button
                                 onClick={() => !sub.is_used && handleDelete(sub.id)}
                                 disabled={sub.is_used}
@@ -319,7 +328,7 @@ const Kategori = () => {
                                 Hapus
                               </button>
                               {sub.is_used && (
-                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10">
+                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover/subsdelincome:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10">
                                   Kategori sudah digunakan dalam transaksi
                                   <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
                                     <div className="border-4 border-transparent border-t-gray-800"></div>
@@ -370,10 +379,15 @@ const Kategori = () => {
                       </button>
                       <div className="relative group/delete">
                         <button
-                          onClick={() => !category.is_used && handleDelete(category.id)}
-                          disabled={category.is_used}
+                          onClick={() => {
+                            const hasSubcategories = category.subcategories && category.subcategories.length > 0;
+                            if (!category.is_used && !hasSubcategories) {
+                              handleDelete(category.id);
+                            }
+                          }}
+                          disabled={category.is_used || (category.subcategories && category.subcategories.length > 0)}
                           className={`px-3 py-2 text-xs font-semibold rounded-xl flex items-center gap-2 transition-all duration-300 ${
-                            category.is_used
+                            category.is_used || (category.subcategories && category.subcategories.length > 0)
                               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                               : 'bg-red-50 text-red-700 hover:bg-red-100 transform hover:scale-105'
                           }`}
@@ -381,9 +395,13 @@ const Kategori = () => {
                           <FontAwesomeIcon icon={faTrash} />
                           Hapus
                         </button>
-                        {category.is_used && (
+                        {(category.is_used || (category.subcategories && category.subcategories.length > 0)) && (
                           <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-3 px-4 py-3 bg-gray-900 text-white text-xs rounded-2xl opacity-0 group-hover/delete:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10 shadow-2xl">
-                            <div className="font-bold">Kategori sudah digunakan dalam transaksi</div>
+                            <div className="font-bold">
+                              {category.is_used
+                                ? 'Kategori sudah digunakan dalam transaksi'
+                                : 'Hapus subkategori terlebih dahulu'}
+                            </div>
                             <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
                               <div className="border-4 border-transparent border-t-gray-900"></div>
                             </div>
@@ -409,7 +427,7 @@ const Kategori = () => {
                               <FontAwesomeIcon icon={faEdit} />
                               Edit
                             </button>
-                            <div className="relative group">
+                            <div className="relative group/subsdelexpense">
                               <button
                                 onClick={() => !sub.is_used && handleDelete(sub.id)}
                                 disabled={sub.is_used}
@@ -423,7 +441,7 @@ const Kategori = () => {
                                 Hapus
                               </button>
                               {sub.is_used && (
-                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10">
+                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover/subsdelexpense:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10">
                                   Kategori sudah digunakan dalam transaksi
                                   <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
                                     <div className="border-4 border-transparent border-t-gray-800"></div>
