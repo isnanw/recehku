@@ -40,7 +40,7 @@ const Kategori = () => {
       const response = await api.get('/categories', {
         params: { workspace_id: currentWorkspace.id },
       });
-      setKategori(response.data.categories || []);
+      setKategori(response.data);
     } catch (error) {
       console.error('Failed to fetch categories:', error);
     } finally {
@@ -267,14 +267,14 @@ const Kategori = () => {
                       <div className="relative group/delete">
                         <button
                           onClick={() => {
-                            const hasSubcategories = category.children && category.children.length > 0;
+                            const hasSubcategories = category.subcategories && category.subcategories.length > 0;
                             if (!category.is_used && !hasSubcategories) {
                               handleDelete(category.id);
                             }
                           }}
-                          disabled={category.is_used || (category.children && category.children.length > 0)}
+                          disabled={category.is_used || (category.subcategories && category.subcategories.length > 0)}
                           className={`px-3 py-2 text-xs font-semibold rounded-xl flex items-center gap-2 transition-all duration-300 ${
-                            category.is_used || (category.children && category.children.length > 0)
+                            category.is_used || (category.subcategories && category.subcategories.length > 0)
                               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                               : 'bg-red-50 text-red-700 hover:bg-red-100 transform hover:scale-105'
                           }`}
@@ -282,7 +282,7 @@ const Kategori = () => {
                           <FontAwesomeIcon icon={faTrash} />
                           Hapus
                         </button>
-                        {(category.is_used || (category.children && category.children.length > 0)) && (
+                        {(category.is_used || (category.subcategories && category.subcategories.length > 0)) && (
                           <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-3 px-4 py-3 bg-gray-900 text-white text-xs rounded-2xl opacity-0 group-hover/delete:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10 shadow-2xl">
                             <div className="font-bold">
                               {category.is_used
@@ -298,9 +298,9 @@ const Kategori = () => {
                     </div>
                   </div>
 
-                  {category.children && category.children.length > 0 && (
+                  {category.subcategories && category.subcategories.length > 0 && (
                     <div className="mt-2 ml-4 space-y-2">
-                      {category.children.map((sub) => (
+                      {category.subcategories.map((sub) => (
                         <div
                           key={sub.id}
                           className="flex justify-between items-center text-sm text-gray-600 bg-gray-50 p-2 rounded"
@@ -380,14 +380,14 @@ const Kategori = () => {
                       <div className="relative group/delete">
                         <button
                           onClick={() => {
-                            const hasSubcategories = category.children && category.children.length > 0;
+                            const hasSubcategories = category.subcategories && category.subcategories.length > 0;
                             if (!category.is_used && !hasSubcategories) {
                               handleDelete(category.id);
                             }
                           }}
-                          disabled={category.is_used || (category.children && category.children.length > 0)}
+                          disabled={category.is_used || (category.subcategories && category.subcategories.length > 0)}
                           className={`px-3 py-2 text-xs font-semibold rounded-xl flex items-center gap-2 transition-all duration-300 ${
-                            category.is_used || (category.children && category.children.length > 0)
+                            category.is_used || (category.subcategories && category.subcategories.length > 0)
                               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                               : 'bg-red-50 text-red-700 hover:bg-red-100 transform hover:scale-105'
                           }`}
@@ -395,7 +395,7 @@ const Kategori = () => {
                           <FontAwesomeIcon icon={faTrash} />
                           Hapus
                         </button>
-                        {(category.is_used || (category.children && category.children.length > 0)) && (
+                        {(category.is_used || (category.subcategories && category.subcategories.length > 0)) && (
                           <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-3 px-4 py-3 bg-gray-900 text-white text-xs rounded-2xl opacity-0 group-hover/delete:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10 shadow-2xl">
                             <div className="font-bold">
                               {category.is_used
@@ -411,9 +411,9 @@ const Kategori = () => {
                     </div>
                   </div>
 
-                  {category.children && category.children.length > 0 && (
+                  {category.subcategories && category.subcategories.length > 0 && (
                     <div className="mt-2 ml-4 space-y-2">
-                      {category.children.map((sub) => (
+                      {category.subcategories.map((sub) => (
                         <div
                           key={sub.id}
                           className="flex justify-between items-center text-sm text-gray-600 bg-gray-50 p-2 rounded"

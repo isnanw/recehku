@@ -70,6 +70,7 @@ const Layout = () => {
     { path: '/dashboard', label: 'Dashboard', icon: faChartLine },
     { path: '/transactions', label: 'Transaksi', icon: faExchangeAlt },
     { path: '/investments', label: 'Investasi', icon: faCoins },
+    { path: '/budget', label: 'Budget', icon: faWallet },
     {
       type: 'dropdown',
       label: 'Master',

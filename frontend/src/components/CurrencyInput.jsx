@@ -49,7 +49,7 @@ const CurrencyInput = ({ value, onChange, placeholder = "0", className = "", dis
         value={displayValue}
         onChange={handleChange}
         onFocus={handleFocus}
-        className={`pl-12 ${className}`}
+        className={`w-full px-4 py-2.5 pl-12 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed ${className}`}
         placeholder={placeholder}
         disabled={disabled}
         required={required}

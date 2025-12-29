@@ -59,33 +59,17 @@ def get_categories() -> Tuple[Dict[str, Any], int]:
 
         categories = query.all()
 
+        # Build flat list with all categories (parents and children)
         category_list = []
         for category in categories:
-            # Check if category is used in any transaction
-            is_used = category.transactions.count() > 0
-
             category_data = {
                 'id': category.id,
                 'name': category.name,
                 'type': category.type,
                 'parent_id': category.parent_id,
                 'created_at': category.created_at.isoformat(),
-                'is_used': is_used
+                'is_used': category.transactions.count() > 0
             }
-
-            # Add subcategories
-            if not category.parent_id:  # Only for parent categories
-                subcats = [
-                    {
-                        'id': sub.id,
-                        'name': sub.name,
-                        'type': sub.type,
-                        'is_used': sub.transactions.count() > 0
-                    }
-                    for sub in category.subcategories
-                ]
-                category_data['subcategories'] = subcats
-
             category_list.append(category_data)
 
         return {'categories': category_list}, 200

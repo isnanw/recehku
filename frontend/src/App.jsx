@@ -11,6 +11,7 @@ import Accounts from './pages/Accounts';
 import Categories from './pages/Categories';
 import Transactions from './pages/Transactions';
 import Investments from './pages/Investments';
+import BudgetPlanning from './pages/BudgetPlanning';
 import Members from './pages/Members';
 import Layout from './components/Layout';
 
@@ -55,6 +56,7 @@ function App() {
               <Route path="/categories" element={<Categories />} />
               <Route path="/transactions" element={<Transactions />} />
               <Route path="/investments" element={<Investments />} />
+              <Route path="/budget" element={<BudgetPlanning />} />
               <Route path="/members" element={<Members />} />
             </Route>
 

@@ -249,3 +249,54 @@ class GoldPriceSetting(db.Model):
 
     def __repr__(self) -> str:
         return f'<GoldPriceSetting {self.gold_type} - {self.buy_price}>'
+
+
+class BudgetPlan(db.Model):
+    """Budget plan model for financial planning."""
+    __tablename__ = 'budget_plans'
+
+    id = db.Column(db.Integer, primary_key=True)
+    workspace_id = db.Column(db.Integer, db.ForeignKey('workspaces.id', ondelete='CASCADE'), nullable=False)
+    name = db.Column(db.String(100), nullable=False)  # e.g., "Budget Januari 2025"
+    income_amount = db.Column(db.Numeric(15, 2), nullable=False)  # Total income (frozen when active)
+    income_date = db.Column(db.Date, nullable=True)  # Tanggal gajian (optional)
+    period_start = db.Column(db.Date, nullable=False)  # Awal periode budget
+    period_end = db.Column(db.Date, nullable=False)  # Akhir periode budget
+    status = db.Column(db.String(20), nullable=False, default='DRAFT')  # DRAFT or ACTIVE
+    is_active = db.Column(db.Boolean, default=True)  # Active budget
+    notes = db.Column(db.Text, nullable=True)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    workspace = db.relationship('Workspace', backref=db.backref('budget_plans', lazy='dynamic', cascade='all, delete-orphan'))
+    user = db.relationship('User', backref=db.backref('budget_plans', lazy='dynamic'))
+    allocations = db.relationship('BudgetAllocation', back_populates='budget_plan', lazy='dynamic', cascade='all, delete-orphan')
+
+    def __repr__(self) -> str:
+        return f'<BudgetPlan {self.name}>'
+
+
+class BudgetAllocation(db.Model):
+    """Budget allocation per category."""
+    __tablename__ = 'budget_allocations'
+
+    id = db.Column(db.Integer, primary_key=True)
+    budget_plan_id = db.Column(db.Integer, db.ForeignKey('budget_plans.id', ondelete='CASCADE'), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('categories.id', ondelete='CASCADE'), nullable=False)
+    allocated_amount = db.Column(db.Numeric(15, 2), nullable=False)  # Planned amount
+    is_system_recommended = db.Column(db.Boolean, default=False)  # True if auto-generated, False if manual
+    notes = db.Column(db.Text, nullable=True)
+
+    # Relationships
+    budget_plan = db.relationship('BudgetPlan', back_populates='allocations')
+    category = db.relationship('Category', backref=db.backref('budget_allocations', lazy='dynamic'))
+
+    # Unique constraint - one allocation per category per budget plan
+    __table_args__ = (
+        db.Index('idx_budget_category', 'budget_plan_id', 'category_id', unique=True),
+    )
+
+    def __repr__(self) -> str:
+        return f'<BudgetAllocation {self.budget_plan_id} - {self.category_id}>'

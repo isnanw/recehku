@@ -279,17 +279,20 @@ def get_dashboard_analytics() -> Tuple[Dict[str, Any], int]:
             account_balance = float(account.initial_balance) + float(income) - float(expense) + float(transfer_in) - float(transfer_out)
             total_balance += account_balance - float(account.initial_balance)
 
-        # Income dan expense bulan ini
+        # Income dan expense bulan ini (exclude Investasi Emas)
         current_month_income = db.session.query(func.sum(Transaction.amount)).filter(
             Transaction.workspace_id == workspace_id,
             Transaction.type == 'INCOME',
             Transaction.transaction_date >= start_of_month
         ).scalar() or Decimal('0')
 
-        current_month_expense = db.session.query(func.sum(Transaction.amount)).filter(
+        current_month_expense = db.session.query(func.sum(Transaction.amount)).join(
+            Category, Transaction.category_id == Category.id
+        ).filter(
             Transaction.workspace_id == workspace_id,
             Transaction.type == 'EXPENSE',
-            Transaction.transaction_date >= start_of_month
+            Transaction.transaction_date >= start_of_month,
+            Category.name != 'Investasi Emas'
         ).scalar() or Decimal('0')
 
         # Expense by category - untuk periode yang dipilih
@@ -315,7 +318,8 @@ def get_dashboard_analytics() -> Tuple[Dict[str, Any], int]:
         ).filter(
             Transaction.workspace_id == workspace_id,
             Transaction.type == 'EXPENSE',
-            Transaction.transaction_date >= period_start
+            Transaction.transaction_date >= period_start,
+            Category.name != 'Investasi Emas'
         ).group_by(Category.name).all()
 
         expense_categories = [
@@ -342,11 +346,14 @@ def get_dashboard_analytics() -> Tuple[Dict[str, Any], int]:
                     Transaction.transaction_date <= day_date
                 ).scalar() or Decimal('0')
 
-                day_expense = db.session.query(func.sum(Transaction.amount)).filter(
+                day_expense = db.session.query(func.sum(Transaction.amount)).join(
+                    Category, Transaction.category_id == Category.id
+                ).filter(
                     Transaction.workspace_id == workspace_id,
                     Transaction.type == 'EXPENSE',
                     Transaction.transaction_date >= day_date,
-                    Transaction.transaction_date <= day_date
+                    Transaction.transaction_date <= day_date,
+                    Category.name != 'Investasi Emas'
                 ).scalar() or Decimal('0')
 
                 trend_data.append({
@@ -386,11 +393,14 @@ def get_dashboard_analytics() -> Tuple[Dict[str, Any], int]:
                     Transaction.transaction_date < month_end
                 ).scalar() or Decimal('0')
 
-                month_expense = db.session.query(func.sum(Transaction.amount)).filter(
+                month_expense = db.session.query(func.sum(Transaction.amount)).join(
+                    Category, Transaction.category_id == Category.id
+                ).filter(
                     Transaction.workspace_id == workspace_id,
                     Transaction.type == 'EXPENSE',
                     Transaction.transaction_date >= month_start,
-                    Transaction.transaction_date < month_end
+                    Transaction.transaction_date < month_end,
+                    Category.name != 'Investasi Emas'
                 ).scalar() or Decimal('0')
 
                 trend_data.append({
@@ -407,7 +417,7 @@ def get_dashboard_analytics() -> Tuple[Dict[str, Any], int]:
                     'end': month_end.isoformat()
                 })
 
-        # Top spending categories (all time)
+        # Top spending categories (all time, exclude Investasi Emas)
         top_categories = db.session.query(
             Category.name.label('category_name'),
             func.sum(Transaction.amount).label('total'),
@@ -416,7 +426,8 @@ def get_dashboard_analytics() -> Tuple[Dict[str, Any], int]:
             Transaction, Transaction.category_id == Category.id
         ).filter(
             Transaction.workspace_id == workspace_id,
-            Transaction.type == 'EXPENSE'
+            Transaction.type == 'EXPENSE',
+            Category.name != 'Investasi Emas'
         ).group_by(Category.name).order_by(func.sum(Transaction.amount).desc()).limit(5).all()
 
         top_spending = [
@@ -524,11 +535,14 @@ def get_daily_comparison() -> Tuple[Dict[str, Any], int]:
                     func.date(Transaction.transaction_date) == day_dt.date()
                 ).scalar() or Decimal('0')
 
-                # Get expense for this day
-                daily_expense = db.session.query(func.sum(Transaction.amount)).filter(
+                # Get expense for this day (exclude Investasi Emas)
+                daily_expense = db.session.query(func.sum(Transaction.amount)).join(
+                    Category, Transaction.category_id == Category.id
+                ).filter(
                     Transaction.workspace_id == workspace_id,
                     Transaction.type == 'EXPENSE',
-                    func.date(Transaction.transaction_date) == day_dt.date()
+                    func.date(Transaction.transaction_date) == day_dt.date(),
+                    Category.name != 'Investasi Emas'
                 ).scalar() or Decimal('0')
 
                 daily_data.append({
@@ -566,12 +580,15 @@ def get_daily_comparison() -> Tuple[Dict[str, Any], int]:
                     Transaction.transaction_date < month_end
                 ).scalar() or Decimal('0')
 
-                # Get expense for this month
-                month_expense = db.session.query(func.sum(Transaction.amount)).filter(
+                # Get expense for this month (exclude Investasi Emas)
+                month_expense = db.session.query(func.sum(Transaction.amount)).join(
+                    Category, Transaction.category_id == Category.id
+                ).filter(
                     Transaction.workspace_id == workspace_id,
                     Transaction.type == 'EXPENSE',
                     Transaction.transaction_date >= month_start,
-                    Transaction.transaction_date < month_end
+                    Transaction.transaction_date < month_end,
+                    Category.name != 'Investasi Emas'
                 ).scalar() or Decimal('0')
 
                 daily_data.append({
@@ -655,3 +672,147 @@ def get_income_by_category() -> Tuple[Dict[str, Any], int]:
         return {'income_by_category': data}, 200
     except Exception as e:
         return {'error': f'Gagal mengumpulkan data: {str(e)}'}, 500
+
+
+@analytics_bp.route('/gold-investment-summary', methods=['GET'])
+@jwt_required()
+@require_role('Owner', 'Admin', 'Member', 'Viewer')
+def get_gold_investment_summary() -> Tuple[Dict[str, Any], int]:
+    """
+    Get gold investment summary and analytics.
+
+    Query params:
+        workspace_id: int (required)
+
+    Returns:
+        JSON with investment summary, breakdown by gold type, and profit/loss analysis
+    """
+    try:
+        from app.models import Investment
+
+        current_user_id = int(get_jwt_identity())
+        workspace_id = request.args.get('workspace_id', type=int)
+
+        if not workspace_id:
+            return {'error': 'workspace_id harus diisi'}, 400
+
+        if not check_workspace_access(current_user_id, workspace_id):
+            return {'error': 'Akses ditolak'}, 403
+
+        # Get all gold investments for workspace
+        investments = Investment.query.filter_by(
+            workspace_id=workspace_id,
+            type='GOLD'
+        ).all()
+
+        if not investments:
+            return {
+                'summary': {
+                    'total_investments': 0,
+                    'total_weight': 0,
+                    'total_buy_value': 0,
+                    'total_current_value': 0,
+                    'profit_loss': 0,
+                    'profit_loss_percentage': 0
+                },
+                'by_gold_type': [],
+                'monthly_purchases': [],
+                'individual_investments': [],
+                'has_data': False
+            }, 200
+
+        # Calculate summary
+        total_weight = sum(float(inv.weight or inv.quantity) for inv in investments)
+        total_buy_value = sum(float(inv.total_buy_value) for inv in investments)
+        total_current_value = sum(float(inv.total_current_value) if inv.total_current_value else 0 for inv in investments)
+        profit_loss = total_current_value - total_buy_value
+        profit_loss_percentage = (profit_loss / total_buy_value * 100) if total_buy_value > 0 else 0
+
+        # Breakdown by gold type
+        by_gold_type = {}
+        for inv in investments:
+            gold_type = inv.gold_type or 'UNKNOWN'
+            if gold_type not in by_gold_type:
+                by_gold_type[gold_type] = {
+                    'gold_type': gold_type,
+                    'count': 0,
+                    'total_weight': 0,
+                    'total_buy_value': 0,
+                    'total_current_value': 0,
+                    'profit_loss': 0
+                }
+
+            by_gold_type[gold_type]['count'] += 1
+            by_gold_type[gold_type]['total_weight'] += float(inv.weight or inv.quantity)
+            by_gold_type[gold_type]['total_buy_value'] += float(inv.total_buy_value)
+            by_gold_type[gold_type]['total_current_value'] += float(inv.total_current_value) if inv.total_current_value else 0
+            by_gold_type[gold_type]['profit_loss'] = by_gold_type[gold_type]['total_current_value'] - by_gold_type[gold_type]['total_buy_value']
+
+        # Add percentage to each gold type
+        for gold_type in by_gold_type.values():
+            gold_type['percentage'] = (gold_type['total_current_value'] / total_current_value * 100) if total_current_value > 0 else 0
+
+        # Monthly purchases (last 6 months)
+        from datetime import date
+        from dateutil.relativedelta import relativedelta
+
+        today = date.today()
+        six_months_ago = today - relativedelta(months=6)
+
+        monthly_purchases = {}
+        for inv in investments:
+            if inv.purchase_date >= six_months_ago:
+                month_key = inv.purchase_date.strftime('%Y-%m')
+                month_label = inv.purchase_date.strftime('%b %Y')
+
+                if month_key not in monthly_purchases:
+                    monthly_purchases[month_key] = {
+                        'month': month_label,
+                        'count': 0,
+                        'total_weight': 0,
+                        'total_value': 0
+                    }
+
+                monthly_purchases[month_key]['count'] += 1
+                monthly_purchases[month_key]['total_weight'] += float(inv.weight or inv.quantity)
+                monthly_purchases[month_key]['total_value'] += float(inv.total_buy_value)
+
+        # Sort monthly purchases by date
+        monthly_data = sorted(monthly_purchases.values(), key=lambda x: x['month'])
+
+        # Individual investments data for chart (modal vs keuntungan)
+        individual_investments = []
+        for inv in investments:
+            current_value = float(inv.total_current_value) if inv.total_current_value else 0
+            buy_value = float(inv.total_buy_value)
+            profit = current_value - buy_value
+
+            individual_investments.append({
+                'name': f"{inv.gold_type} {inv.weight or inv.quantity}g",
+                'date': inv.purchase_date.strftime('%d/%m/%Y'),
+                'modal': buy_value,
+                'keuntungan': profit,
+                'total': current_value
+            })
+
+        # Sort by date (newest first) and limit to last 10 for readability
+        individual_investments.sort(key=lambda x: x['date'], reverse=True)
+        individual_investments = individual_investments[:10]
+
+        return {
+            'summary': {
+                'total_investments': len(investments),
+                'total_weight': total_weight,
+                'total_buy_value': total_buy_value,
+                'total_current_value': total_current_value,
+                'profit_loss': profit_loss,
+                'profit_loss_percentage': profit_loss_percentage
+            },
+            'by_gold_type': list(by_gold_type.values()),
+            'monthly_purchases': monthly_data,
+            'individual_investments': individual_investments,
+            'has_data': True
+        }, 200
+
+    except Exception as e:
+        return {'error': f'Gagal mengambil data investasi emas: {str(e)}'}, 500

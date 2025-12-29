@@ -16,7 +16,8 @@ import {
   faEyeSlash,
   faChevronLeft,
   faChevronRight,
-  faCoins
+  faCoins,
+  faChartLine
 } from '@fortawesome/free-solid-svg-icons';
 import api from '../utils/api';
 import {
@@ -238,6 +239,8 @@ const Dashboard = () => {
   const [incomeByCategoryLoading, setIncomeByCategoryLoading] = useState(false);
   const [investments, setInvestments] = useState([]);
   const [investmentsLoading, setInvestmentsLoading] = useState(false);
+  const [goldInvestmentData, setGoldInvestmentData] = useState(null);
+  const [goldInvestmentLoading, setGoldInvestmentLoading] = useState(false);
   const deriveDebounceRef = useRef(null);
   const [hideBalance, setHideBalance] = useState(() => {
     try {
@@ -264,6 +267,7 @@ const Dashboard = () => {
       fetchDailyComparison();
       fetchAccounts();
       fetchInvestments();
+      fetchGoldInvestmentData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentWorkspace, selectedPeriod]);
@@ -450,6 +454,22 @@ const Dashboard = () => {
       setInvestments([]);
     } finally {
       setInvestmentsLoading(false);
+    }
+  };
+
+  const fetchGoldInvestmentData = async () => {
+    if (!currentWorkspace) return;
+    try {
+      setGoldInvestmentLoading(true);
+      const resp = await api.get('/analytics/gold-investment-summary', {
+        params: { workspace_id: currentWorkspace.id },
+      });
+      setGoldInvestmentData(resp.data);
+    } catch (err) {
+      console.error('Gagal memuat data investasi emas:', err);
+      setGoldInvestmentData(null);
+    } finally {
+      setGoldInvestmentLoading(false);
     }
   };
 
@@ -1167,6 +1187,145 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Gold Investment Dashboard */}
+      {goldInvestmentData && goldInvestmentData.has_data && (
+        <div className="bg-gradient-to-br from-yellow-50 via-amber-50 to-orange-50 rounded-2xl shadow-xl p-6 animate-scaleIn">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-500 via-amber-500 to-yellow-600 flex items-center justify-center shadow-lg">
+              <FontAwesomeIcon icon={faCoins} className="text-white text-xl" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-yellow-600 to-amber-600 bg-clip-text text-transparent">Dashboard Investasi Emas</h2>
+              <p className="text-sm text-gray-600">Ringkasan portofolio emas Anda</p>
+            </div>
+          </div>
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+            {/* Total Investments */}
+            <div className="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition-all duration-300">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <FontAwesomeIcon icon={faChartLine} className="text-blue-600" />
+                </div>
+                <p className="text-sm font-medium text-gray-600">Total Investasi</p>
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{goldInvestmentData.summary.total_investments}</p>
+            </div>
+
+            {/* Total Weight */}
+            <div className="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition-all duration-300">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-lg bg-yellow-100 flex items-center justify-center">
+                  <FontAwesomeIcon icon={faCoins} className="text-yellow-600" />
+                </div>
+                <p className="text-sm font-medium text-gray-600">Total Berat</p>
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{goldInvestmentData.summary.total_weight.toFixed(2)} gram</p>
+            </div>
+
+            {/* Total Buy Value */}
+            <div className="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition-all duration-300">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                  <FontAwesomeIcon icon={faArrowTrendUp} className="text-green-600" />
+                </div>
+                <p className="text-sm font-medium text-gray-600">Nilai Beli</p>
+              </div>
+              <p className="text-xl font-bold text-gray-900">{formatCurrency(goldInvestmentData.summary.total_buy_value)}</p>
+            </div>
+
+            {/* Current Value */}
+            <div className="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition-all duration-300">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                  <FontAwesomeIcon icon={faWallet} className="text-purple-600" />
+                </div>
+                <p className="text-sm font-medium text-gray-600">Nilai Sekarang</p>
+              </div>
+              <p className="text-xl font-bold text-gray-900">{formatCurrency(goldInvestmentData.summary.total_current_value)}</p>
+            </div>
+
+            {/* Profit/Loss */}
+            <div className={`rounded-xl shadow-md p-4 hover:shadow-lg transition-all duration-300 ${
+              goldInvestmentData.summary.profit_loss >= 0 ? 'bg-gradient-to-br from-green-500 to-emerald-600' : 'bg-gradient-to-br from-red-500 to-pink-600'
+            }`}>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                  <FontAwesomeIcon
+                    icon={goldInvestmentData.summary.profit_loss >= 0 ? faArrowTrendUp : faArrowTrendDown}
+                    className="text-white"
+                  />
+                </div>
+                <p className="text-sm font-medium text-white/90">Keuntungan</p>
+              </div>
+              <p className="text-xl font-bold text-white">{formatCurrency(goldInvestmentData.summary.profit_loss)}</p>
+              <p className="text-sm text-white/80 mt-1">
+                {goldInvestmentData.summary.profit_loss_percentage >= 0 ? '+' : ''}
+                {goldInvestmentData.summary.profit_loss_percentage.toFixed(2)}%
+              </p>
+            </div>
+          </div>
+
+          {/* Charts Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Breakdown by Gold Type */}
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">Breakdown per Jenis Emas</h3>
+              {goldInvestmentData.by_gold_type && goldInvestmentData.by_gold_type.length > 0 ? (
+                <ResponsiveContainer width="100%" height={350}>
+                  <PieChart>
+                    <Pie
+                      data={goldInvestmentData.by_gold_type}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ gold_type, percentage }) => `${gold_type} (${percentage.toFixed(1)}%)`}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="total_current_value"
+                      nameKey="gold_type"
+                    >
+                      {goldInvestmentData.by_gold_type.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => formatCurrency(value)} />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-gray-500 text-center py-12">Belum ada data</p>
+              )}
+            </div>
+
+            {/* Modal vs Keuntungan per Investasi */}
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">Modal & Keuntungan (10 Terakhir)</h3>
+              {goldInvestmentData.individual_investments && goldInvestmentData.individual_investments.length > 0 ? (
+                <ResponsiveContainer width="100%" height={350}>
+                  <BarChart data={goldInvestmentData.individual_investments}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} fontSize={11} />
+                    <YAxis tickFormatter={(value) => formatShortCurrency(value)} />
+                    <Tooltip formatter={(value) => formatCurrency(value)} />
+                    <Legend />
+                    <Bar dataKey="modal" name="Modal" fill="#3B82F6" />
+                    <Bar dataKey="keuntungan" name="Keuntungan" fill="#10B981">
+                      {goldInvestmentData.individual_investments.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.keuntungan >= 0 ? '#10B981' : '#EF4444'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-gray-500 text-center py-12">Belum ada data</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Monthly Comparison Line Chart */}
       <div className="card">

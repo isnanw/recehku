@@ -24,7 +24,8 @@ import {
   faHome,
   faBriefcase,
   faClock,
-  faExternalLinkAlt
+  faExternalLinkAlt,
+  faInfoCircle
 } from '@fortawesome/free-solid-svg-icons';
 import toast from 'react-hot-toast';
 import Swal from 'sweetalert2';
@@ -701,7 +702,15 @@ const Investments = () => {
                   </div>
                 )}
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Harga Beli/gram:</span>
+                  <span className="text-sm text-gray-600 flex items-center gap-1">
+                    Harga Beli/gram
+                    <span className="relative inline-block">
+                      <FontAwesomeIcon icon={faInfoCircle} className="peer text-gray-400 hover:text-blue-500 cursor-help text-xs" />
+                      <span className="absolute left-0 top-5 w-48 bg-gray-900 text-white text-xs rounded-lg py-2 px-3 opacity-0 peer-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg">
+                        Harga emas per gram saat Anda membeli. Misal Anda membeli 10 gram dengan total harga Rp10.000.000, maka harga beli per gram adalah Rp1.000.000.
+                      </span>
+                    </span>
+                  </span>
                   <span className="text-sm font-bold text-gray-900">{formatCurrency(investment.buy_price)}</span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -712,11 +721,27 @@ const Investments = () => {
                 {investment.current_price && (
                   <>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Harga Sekarang:</span>
+                      <span className="text-sm text-gray-600 flex items-center gap-1">
+                        Harga Sekarang
+                        <span className="relative inline-block">
+                          <FontAwesomeIcon icon={faInfoCircle} className="peer text-gray-400 hover:text-blue-500 cursor-help text-xs" />
+                          <span className="absolute left-0 top-5 w-48 bg-gray-900 text-white text-xs rounded-lg py-2 px-3 opacity-0 peer-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg">
+                            Harga emas per gram saat ini (harga buyback). Ini adalah kemungkinan harga jika Anda menjual emas sekarang. Harga bisa berbeda tergantung sumber dan kondisi pasar.
+                          </span>
+                        </span>
+                      </span>
                       <span className="text-sm font-bold text-gray-900">{formatCurrency(investment.current_price)}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Nilai Sekarang:</span>
+                      <span className="text-sm text-gray-600 flex items-center gap-1">
+                        Nilai Sekarang
+                        <span className="relative inline-block">
+                          <FontAwesomeIcon icon={faInfoCircle} className="peer text-gray-400 hover:text-blue-500 cursor-help text-xs" />
+                          <span className="absolute left-0 top-5 w-56 bg-gray-900 text-white text-xs rounded-lg py-2 px-3 opacity-0 peer-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg">
+                            Total nilai investasi jika dijual sekarang (berat × harga sekarang)
+                          </span>
+                        </span>
+                      </span>
                       <span className="text-sm font-bold text-green-700">{formatCurrency(investment.total_current_value)}</span>
                     </div>
                     <div className={`flex justify-between items-center p-3 rounded-xl ${investment.profit_loss >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>

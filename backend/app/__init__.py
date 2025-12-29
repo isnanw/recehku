@@ -35,7 +35,7 @@ def create_app(config_name: str = 'development') -> Flask:
     CORS(app)
 
     # Register blueprints
-    from app.routes import auth_bp, workspace_bp, account_bp, category_bp, transaction_bp
+    from app.routes import auth_bp, workspace_bp, account_bp, category_bp, transaction_bp, budget_bp
     from app.routes.analytics import analytics_bp
     from app.routes.investment import investment_bp
 
@@ -46,5 +46,6 @@ def create_app(config_name: str = 'development') -> Flask:
     app.register_blueprint(transaction_bp, url_prefix='/api/transactions')
     app.register_blueprint(analytics_bp, url_prefix='/api/analytics')
     app.register_blueprint(investment_bp, url_prefix='/api/investments')
+    app.register_blueprint(budget_bp, url_prefix='/api/budget')
 
     return app

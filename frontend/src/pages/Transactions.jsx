@@ -316,6 +316,7 @@ const Transaksi = () => {
   };
 
   const getFilteredCategories = () => {
+    if (!categories || !Array.isArray(categories)) return [];
     return categories.filter((cat) => {
       if (formData.type === 'TRANSFER') return false;
       return cat.type === formData.type;
