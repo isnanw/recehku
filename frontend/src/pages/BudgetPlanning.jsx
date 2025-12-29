@@ -30,6 +30,7 @@ const BudgetPlanning = () => {
   const [showRealizationModal, setShowRealizationModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [realization, setRealization] = useState(null);
+  const [realizationData, setRealizationData] = useState({});
 
   const [formData, setFormData] = useState({
     name: '',
@@ -54,7 +55,29 @@ const BudgetPlanning = () => {
       const resp = await api.get('/budget/plans', {
         params: { workspace_id: currentWorkspace.id }
       });
-      setBudgetPlans(resp.data.budget_plans || []);
+      const plans = resp.data.budget_plans || [];
+      setBudgetPlans(plans);
+
+      // Fetch realization data for each plan
+      const realizationPromises = plans.map(async (plan) => {
+        try {
+          const realizationResp = await api.get(`/budget/plans/${plan.id}/realization`, {
+            params: { workspace_id: currentWorkspace.id }
+          });
+          return { planId: plan.id, data: realizationResp.data.summary };
+        } catch (err) {
+          return { planId: plan.id, data: null };
+        }
+      });
+
+      const realizationResults = await Promise.all(realizationPromises);
+      const realizationMap = {};
+      realizationResults.forEach(result => {
+        if (result.data) {
+          realizationMap[result.planId] = result.data;
+        }
+      });
+      setRealizationData(realizationMap);
     } catch (err) {
       console.error('Gagal memuat budget plans:', err);
     } finally {
@@ -424,6 +447,93 @@ const BudgetPlanning = () => {
         </div>
       </div>
 
+      {/* Summary Cards */}
+      {!loading && budgetPlans.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {/* Total Budget Plans */}
+          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-blue-100 text-sm font-medium mb-1">Total Budget Plans</p>
+                <p className="text-4xl font-bold">{budgetPlans.length}</p>
+                <p className="text-blue-100 text-xs mt-2">
+                  {budgetPlans.filter(p => p.status === 'ACTIVE').length} Active • {budgetPlans.filter(p => p.status === 'DRAFT').length} Draft
+                </p>
+              </div>
+              <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center">
+                <FontAwesomeIcon icon={faChartPie} className="text-3xl" />
+              </div>
+            </div>
+          </div>
+
+          {/* Total Income (Active Plans) */}
+          <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-6 text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-green-100 text-sm font-medium mb-1">Total Income</p>
+                <p className="text-2xl font-bold">
+                  {formatCurrency(
+                    budgetPlans
+                      .filter(p => p.status === 'ACTIVE')
+                      .reduce((sum, p) => sum + (p.actual_income || p.income_amount), 0)
+                  )}
+                </p>
+                <p className="text-green-100 text-xs mt-2">Dari budget aktif</p>
+              </div>
+              <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center">
+                <FontAwesomeIcon icon={faWallet} className="text-3xl" />
+              </div>
+            </div>
+          </div>
+
+          {/* Total Allocated */}
+          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-purple-100 text-sm font-medium mb-1">Total Dialokasikan</p>
+                <p className="text-2xl font-bold">
+                  {formatCurrency(
+                    budgetPlans.reduce((sum, plan) => {
+                      const planTotal = plan.allocations.reduce((s, a) => s + a.allocated_amount, 0);
+                      return sum + planTotal;
+                    }, 0)
+                  )}
+                </p>
+                <p className="text-purple-100 text-xs mt-2">Semua budget plans</p>
+              </div>
+              <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center">
+                <FontAwesomeIcon icon={faCheckCircle} className="text-3xl" />
+              </div>
+            </div>
+          </div>
+
+          {/* Avg Utilization */}
+          <div className="bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl p-6 text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-orange-100 text-sm font-medium mb-1">Rata-rata Utilisasi</p>
+                <p className="text-4xl font-bold">
+                  {(() => {
+                    const activePlans = budgetPlans.filter(p => p.status === 'ACTIVE');
+                    if (activePlans.length === 0) return '0%';
+                    const totalIncome = activePlans.reduce((sum, p) => sum + (p.actual_income || p.income_amount), 0);
+                    const totalAllocated = activePlans.reduce((sum, plan) => {
+                      return sum + plan.allocations.reduce((s, a) => s + a.allocated_amount, 0);
+                    }, 0);
+                    const percentage = totalIncome > 0 ? (totalAllocated / totalIncome) * 100 : 0;
+                    return percentage.toFixed(0) + '%';
+                  })()}
+                </p>
+                <p className="text-orange-100 text-xs mt-2">Budget aktif saja</p>
+              </div>
+              <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center">
+                <FontAwesomeIcon icon={faLightbulb} className="text-3xl" />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Budget Plans List */}
       {loading ? (
         <div className="text-center py-12">
@@ -511,20 +621,140 @@ const BudgetPlanning = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                   <div className="bg-blue-50 rounded-lg p-4">
-                    <p className="text-sm text-gray-600 mb-1">Total Dialokasikan</p>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-sm text-gray-600">Budget Planning</p>
+                      <span className="text-xs text-blue-500 bg-blue-100 px-2 py-0.5 rounded">Rencana</span>
+                    </div>
                     <p className="text-xl font-bold text-blue-600">{formatCurrency(totalAllocated)}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Sisa: {formatCurrency(remaining)}
+                      <span className={`ml-1 ${remaining >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        ({remaining >= 0 ? '+' : ''}{actualIncome > 0 ? ((remaining / actualIncome) * 100).toFixed(1) : 0}%)
+                      </span>
+                    </p>
                   </div>
-                  <div className={`rounded-lg p-4 ${remaining >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
-                    <p className="text-sm text-gray-600 mb-1">Sisa Budget</p>
-                    <p className={`text-xl font-bold ${remaining >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {formatCurrency(remaining)}
+                  <div className="bg-teal-50 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-sm text-gray-600">Realisasi Pengeluaran</p>
+                      <span className="text-xs text-teal-500 bg-teal-100 px-2 py-0.5 rounded">Aktual</span>
+                    </div>
+                    <p className="text-xl font-bold text-teal-600">
+                      {realizationData[plan.id] ? formatCurrency(realizationData[plan.id].total_spent) : formatCurrency(0)}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {realizationData[plan.id] && totalAllocated > 0 ?
+                        `${((realizationData[plan.id].total_spent / totalAllocated) * 100).toFixed(1)}% terpakai` :
+                        'Belum ada pengeluaran'
+                      }
+                    </p>
+                  </div>
+                  <div className={`rounded-lg p-4 ${(() => {
+                    const realizationForPlan = realizationData[plan.id];
+                    if (!realizationForPlan) return 'bg-gray-50';
+                    const variance = totalAllocated - realizationForPlan.total_spent;
+                    return variance >= 0 ? 'bg-green-50' : 'bg-red-50';
+                  })()}`}>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-sm text-gray-600">Selisih Budget</p>
+                      <span className={`text-xs px-2 py-0.5 rounded ${(() => {
+                        const realizationForPlan = realizationData[plan.id];
+                        if (!realizationForPlan) return 'bg-gray-100 text-gray-500';
+                        const variance = totalAllocated - realizationForPlan.total_spent;
+                        return variance >= 0 ? 'bg-green-100 text-green-500' : 'bg-red-100 text-red-500';
+                      })()}`}>
+                        {(() => {
+                          const realizationForPlan = realizationData[plan.id];
+                          if (!realizationForPlan) return 'N/A';
+                          const variance = totalAllocated - realizationForPlan.total_spent;
+                          return variance >= 0 ? 'Surplus' : 'Defisit';
+                        })()}
+                      </span>
+                    </div>
+                    <p className={`text-xl font-bold ${(() => {
+                      const realizationForPlan = realizationData[plan.id];
+                      if (!realizationForPlan) return 'text-gray-600';
+                      const variance = totalAllocated - realizationForPlan.total_spent;
+                      return variance >= 0 ? 'text-green-600' : 'text-red-600';
+                    })()}`}>
+                      {(() => {
+                        const realizationForPlan = realizationData[plan.id];
+                        if (!realizationForPlan) return '-';
+                        const variance = totalAllocated - realizationForPlan.total_spent;
+                        return formatCurrency(Math.abs(variance));
+                      })()}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {(() => {
+                        const realizationForPlan = realizationData[plan.id];
+                        if (!realizationForPlan) return 'Belum ada data';
+                        const variance = totalAllocated - realizationForPlan.total_spent;
+                        if (variance >= 0) return 'Budget tersisa';
+                        return 'Budget terlampaui';
+                      })()}
                     </p>
                   </div>
                   <div className="bg-purple-50 rounded-lg p-4">
-                    <p className="text-sm text-gray-600 mb-1">Kategori</p>
-                    <p className="text-xl font-bold text-purple-600">{plan.allocations.length}</p>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-sm text-gray-600">Progress Periode</p>
+                      <span className="text-xs text-purple-500 bg-purple-100 px-2 py-0.5 rounded">Waktu</span>
+                    </div>
+                    <p className="text-xl font-bold text-purple-600">
+                      {(() => {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const periodStart = new Date(plan.period_start);
+                        periodStart.setHours(0, 0, 0, 0);
+                        const periodEnd = new Date(plan.period_end);
+                        periodEnd.setHours(23, 59, 59, 999);
+
+                        // Check if period hasn't started yet
+                        if (today < periodStart) {
+                          return 'Belum Mulai';
+                        }
+
+                        // Check if period has ended (after the end date)
+                        if (today > periodEnd) {
+                          return 'Selesai';
+                        }
+
+                        const totalDays = Math.max(1, (periodEnd - periodStart) / (1000 * 60 * 60 * 24));
+                        const daysPassed = Math.max(0, (today - periodStart) / (1000 * 60 * 60 * 24));
+                        const periodProgress = Math.min(100, (daysPassed / totalDays) * 100);
+
+                        return `${periodProgress.toFixed(0)}%`;
+                      })()}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {(() => {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const periodStart = new Date(plan.period_start);
+                        periodStart.setHours(0, 0, 0, 0);
+                        const periodEnd = new Date(plan.period_end);
+                        periodEnd.setHours(23, 59, 59, 999);
+
+                        // Calculate total days in period
+                        const periodEndDate = new Date(plan.period_end);
+                        periodEndDate.setHours(0, 0, 0, 0);
+                        const totalDays = Math.ceil((periodEndDate - periodStart) / (1000 * 60 * 60 * 24)) + 1;
+
+                        if (today < periodStart) {
+                          const daysUntilStart = Math.ceil((periodStart - today) / (1000 * 60 * 60 * 24));
+                          return `Dimulai ${daysUntilStart} hari lagi (${totalDays} hari)`;
+                        }
+
+                        if (today > periodEnd) {
+                          const daysAgo = Math.ceil((today - periodEnd) / (1000 * 60 * 60 * 24));
+                          return `Berakhir ${daysAgo} hari lalu (${totalDays} hari)`;
+                        }
+
+                        const daysRemaining = Math.max(0, Math.ceil((periodEndDate - today) / (1000 * 60 * 60 * 24)));
+
+                        return `Periode ${totalDays} hari, sisa ${daysRemaining} hari`;
+                      })()}
+                    </p>
                   </div>
                 </div>
 
@@ -771,18 +1001,49 @@ const BudgetPlanning = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-blue-50 rounded-lg p-4">
-                <p className="text-sm text-gray-600 mb-1">Total Budget</p>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-sm text-gray-600">Total Budget</p>
+                  <span className="text-xs text-blue-500 bg-blue-100 px-2 py-0.5 rounded">Rencana</span>
+                </div>
                 <p className="text-xl font-bold text-blue-600">{formatCurrency(realization.summary.total_budgeted)}</p>
+                <p className="text-xs text-gray-500 mt-1">Yang dialokasikan</p>
               </div>
               <div className="bg-purple-50 rounded-lg p-4">
-                <p className="text-sm text-gray-600 mb-1">Total Pengeluaran</p>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-sm text-gray-600">Total Pengeluaran</p>
+                  <span className="text-xs text-purple-500 bg-purple-100 px-2 py-0.5 rounded">Aktual</span>
+                </div>
                 <p className="text-xl font-bold text-purple-600">{formatCurrency(realization.summary.total_spent)}</p>
+                <p className="text-xs text-gray-500 mt-1">Sudah terpakai</p>
               </div>
               <div className={`rounded-lg p-4 ${realization.summary.remaining >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
-                <p className="text-sm text-gray-600 mb-1">Sisa</p>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-sm text-gray-600">Sisa Budget</p>
+                  <span className={`text-xs ${realization.summary.remaining >= 0 ? 'text-green-500 bg-green-100' : 'text-red-500 bg-red-100'} px-2 py-0.5 rounded`}>
+                    {realization.summary.remaining >= 0 ? 'Aktual' : 'Over'}
+                  </span>
+                </div>
                 <p className={`text-xl font-bold ${realization.summary.remaining >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {formatCurrency(realization.summary.remaining)}
                 </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {realization.summary.remaining >= 0 ? 'Sisa yang belum terpakai' : 'Melebihi budget'}
+                </p>
+              </div>
+            </div>
+
+            {/* Penjelasan Perbedaan */}
+            <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-500 rounded-lg p-4">
+              <div className="flex gap-3">
+                <FontAwesomeIcon icon={faLightbulb} className="text-amber-600 text-xl mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-semibold text-amber-900 mb-2">💡 Penjelasan:</p>
+                  <ul className="text-sm text-amber-800 space-y-1">
+                    <li>• <strong>Total Budget:</strong> Jumlah yang Anda rencanakan untuk dibelanjakan</li>
+                    <li>• <strong>Total Pengeluaran:</strong> Jumlah yang sudah benar-benar dibelanjakan (dari transaksi)</li>
+                    <li>• <strong>Sisa Budget:</strong> Budget yang tersisa = Total Budget - Total Pengeluaran</li>
+                  </ul>
+                </div>
               </div>
             </div>
 
