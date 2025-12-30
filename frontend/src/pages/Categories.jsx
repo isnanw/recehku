@@ -121,16 +121,38 @@ const Kategori = () => {
     setFormData({ name: '', type: 'EXPENSE', parent_id: '' });
   };
 
+  const buildCategoryHierarchy = (categoryList) => {
+    // Build a map for quick lookup
+    const categoryMap = {};
+    categoryList.forEach(cat => {
+      categoryMap[cat.id] = { ...cat, children: [] };
+    });
+
+    // Build hierarchy
+    const roots = [];
+    Object.values(categoryMap).forEach(cat => {
+      if (cat.parent_id && categoryMap[cat.parent_id]) {
+        categoryMap[cat.parent_id].children.push(cat);
+      } else if (!cat.parent_id) {
+        roots.push(cat);
+      }
+    });
+
+    return roots;
+  };
+
   const getParentKategori = () => {
     return categories.filter((cat) => !cat.parent_id && cat.type === formData.type);
   };
 
   const getIncomeKategori = () => {
-    return categories.filter((cat) => cat.type === 'INCOME' && !cat.parent_id);
+    const incomeCategories = categories.filter((cat) => cat.type === 'INCOME');
+    return buildCategoryHierarchy(incomeCategories);
   };
 
   const getExpenseKategori = () => {
-    return categories.filter((cat) => cat.type === 'EXPENSE' && !cat.parent_id);
+    const expenseCategories = categories.filter((cat) => cat.type === 'EXPENSE');
+    return buildCategoryHierarchy(expenseCategories);
   };
 
   if (loading) {
