@@ -280,6 +280,20 @@ const Layout = () => {
 
                     {/* Menu Items */}
                     <div className="p-2">
+                      <Link
+                        to="/settings"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-xl transition-all duration-200 group mb-1"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                          <FontAwesomeIcon icon={faCog} className="text-sm text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold">Pengaturan</p>
+                          <p className="text-xs text-gray-500">Kelola profil dan akun</p>
+                        </div>
+                      </Link>
+
                       <button
                         onClick={handleKeluar}
                         className="w-full flex items-center gap-3 px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 group"
@@ -436,6 +450,17 @@ const Layout = () => {
 
               {/* Mobile Logout */}
               <div className="p-4 border-t border-gray-100 mt-4">
+                <Link
+                  to="/settings"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full flex items-center gap-4 px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-xl transition-all duration-200 group mb-2"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                    <FontAwesomeIcon icon={faCog} className="text-sm text-blue-600" />
+                  </div>
+                  <span className="text-sm font-semibold">Pengaturan</span>
+                </Link>
+
                 <button
                   onClick={handleKeluar}
                   className="w-full flex items-center gap-4 px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 group"

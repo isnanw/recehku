@@ -13,6 +13,7 @@ import Transactions from './pages/Transactions';
 import Investments from './pages/Investments';
 import BudgetPlanning from './pages/BudgetPlanning';
 import Members from './pages/Members';
+import Settings from './pages/Settings';
 import Layout from './components/Layout';
 
 function App() {
@@ -62,6 +63,7 @@ function App() {
                     <Route path="/investments" element={<Investments />} />
                     <Route path="/budget" element={<BudgetPlanning />} />
                     <Route path="/members" element={<Members />} />
+                    <Route path="/settings" element={<Settings />} />
                   </Route>
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 </Routes>

@@ -225,3 +225,120 @@ def get_current_user() -> Tuple[Dict[str, Any], int]:
 
     except Exception as e:
         return {'error': f'Gagal mengambil info pengguna: {str(e)}'}, 500
+
+
+@auth_bp.route('/profile', methods=['PUT'])
+@jwt_required()
+def update_profile() -> Tuple[Dict[str, Any], int]:
+    """
+    Update user profile (name and email).
+
+    Expected JSON:
+        {
+            "name": "New Name",
+            "email": "newemail@example.com"
+        }
+
+    Returns:
+        JSON response with updated user info
+    """
+    try:
+        current_user_id = int(get_jwt_identity())
+        user = User.query.get(current_user_id)
+
+        if not user:
+            return {'error': 'Pengguna tidak ditemukan'}, 404
+
+        data = request.get_json()
+
+        # Validate input
+        if not data:
+            return {'error': 'Data tidak boleh kosong'}, 400
+
+        # Update name if provided
+        if 'name' in data:
+            name = data['name'].strip()
+            if not name:
+                return {'error': 'Nama tidak boleh kosong'}, 400
+            user.name = name
+
+        # Update email if provided
+        if 'email' in data:
+            email = data['email'].lower().strip()
+            if not email:
+                return {'error': 'Email tidak boleh kosong'}, 400
+
+            # Check if email is already used by another user
+            existing_user = User.query.filter_by(email=email).first()
+            if existing_user and existing_user.id != user.id:
+                return {'error': 'Email sudah digunakan oleh pengguna lain'}, 400
+
+            user.email = email
+
+        db.session.commit()
+
+        return {
+            'message': 'Profil berhasil diperbarui',
+            'user': {
+                'id': user.id,
+                'email': user.email,
+                'name': user.name,
+                'is_owner': user.is_owner
+            }
+        }, 200
+
+    except Exception as e:
+        db.session.rollback()
+        return {'error': f'Gagal memperbarui profil: {str(e)}'}, 500
+
+
+@auth_bp.route('/password', methods=['PUT'])
+@jwt_required()
+def update_password() -> Tuple[Dict[str, Any], int]:
+    """
+    Update user password.
+
+    Expected JSON:
+        {
+            "current_password": "oldpassword123",
+            "new_password": "newpassword123"
+        }
+
+    Returns:
+        JSON response with success message
+    """
+    try:
+        current_user_id = int(get_jwt_identity())
+        user = User.query.get(current_user_id)
+
+        if not user:
+            return {'error': 'Pengguna tidak ditemukan'}, 404
+
+        data = request.get_json()
+
+        # Validate input
+        if not data or not all(k in data for k in ['current_password', 'new_password']):
+            return {'error': 'Password saat ini dan password baru harus diisi'}, 400
+
+        current_password = data['current_password']
+        new_password = data['new_password']
+
+        # Verify current password
+        if not bcrypt.check_password_hash(user.hashed_password, current_password):
+            return {'error': 'Password saat ini salah'}, 401
+
+        # Validate new password
+        if len(new_password) < 6:
+            return {'error': 'Password baru minimal 6 karakter'}, 400
+
+        # Update password
+        user.hashed_password = bcrypt.generate_password_hash(new_password).decode('utf-8')
+        db.session.commit()
+
+        return {
+            'message': 'Password berhasil diubah'
+        }, 200
+
+    except Exception as e:
+        db.session.rollback()
+        return {'error': f'Gagal mengubah password: {str(e)}'}, 500
