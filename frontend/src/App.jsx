@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import { WorkspaceProvider } from './context/WorkspaceContext';
 import { PermissionsProvider } from './context/PermissionsContext';
 import PrivateRoute from './components/PrivateRoute';
+import SEO from './components/SEO';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -19,6 +20,7 @@ import Layout from './components/Layout';
 function App() {
   return (
     <Router>
+      <SEO />
       <Toaster
         position="top-right"
         reverseOrder={false}

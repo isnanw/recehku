@@ -106,7 +106,7 @@ const Layout = () => {
                 <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
                   RecehKu
                 </h1>
-                <p className="hidden sm:block text-xs text-gray-500">Kelola keuangan Anda dengan cerdas</p>
+                <p className="hidden sm:block text-xs text-gray-500">Rencana Cermat Keuanganku</p>
               </div>
             </div>
 
