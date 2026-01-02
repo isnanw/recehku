@@ -22,7 +22,7 @@ export const AuthProvider = ({ children }) => {
       // Load from localStorage first for immediate availability
       const storedUser = localStorage.getItem('user');
       const storedWorkspaces = localStorage.getItem('workspaces');
-      
+
       if (storedUser && storedWorkspaces) {
         try {
           setUser(JSON.parse(storedUser));
@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }) => {
           console.error('Failed to parse stored user data:', error);
         }
       }
-      
+
       // Then fetch fresh data from API
       fetchCurrentUser();
     } else {
@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }) => {
       const response = await api.get('/auth/me');
       setUser(response.data.user);
       setWorkspaces(response.data.workspaces);
-      
+
       // Update localStorage with fresh data
       localStorage.setItem('user', JSON.stringify(response.data.user));
       localStorage.setItem('workspaces', JSON.stringify(response.data.workspaces));

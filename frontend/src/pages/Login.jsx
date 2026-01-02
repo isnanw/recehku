@@ -32,7 +32,7 @@ const Login = () => {
       localStorage.setItem('token', response.data.access_token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
       localStorage.setItem('workspaces', JSON.stringify(response.data.workspaces));
-      
+
       // Set current workspace to first workspace if not set
       if (response.data.workspaces && response.data.workspaces.length > 0) {
         const savedWorkspaceId = localStorage.getItem('currentWorkspaceId');
