@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { usePermissions } from '../context/PermissionsContext';
 import api from '../utils/api';
@@ -13,9 +14,11 @@ import {
   faUserShield,
   faUser,
   faEye,
+  faKey,
 } from '@fortawesome/free-solid-svg-icons';
 
 function Members() {
+  const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const { can } = usePermissions();
   const [members, setMembers] = useState([]);
@@ -102,6 +105,54 @@ function Members() {
       fetchMembers();
     } catch (error) {
       setError(error.response?.data?.error || 'Gagal mengubah role');
+    }
+  };
+
+  const handleResetPassword = async (member) => {
+    const result = await Swal.fire({
+      title: 'Reset Password?',
+      html: `Reset password untuk <strong>${member.name}</strong>?<br><br>Password baru akan ditampilkan setelah reset.`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#3b82f6',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Ya, Reset',
+      cancelButtonText: 'Batal',
+    });
+
+    if (!result.isConfirmed) return;
+
+    const toastId = toast.loading('Mereset password...');
+
+    try {
+      const response = await api.post(
+        `/workspaces/${currentWorkspace.id}/members/${member.id}/reset-password`
+      );
+      toast.success('Password berhasil direset!', { id: toastId });
+
+      // Show new password to admin
+      await Swal.fire({
+        title: 'Password Baru',
+        html: `
+          <div class="text-left space-y-4">
+            <p><strong>User:</strong> ${member.name}</p>
+            <p><strong>Email:</strong> ${response.data.email}</p>
+            <div class="mt-4 p-4 bg-gray-100 rounded-lg">
+              <p class="text-sm text-gray-600 mb-2">Password Baru:</p>
+              <p class="text-2xl font-mono font-bold text-blue-600 tracking-wider">${response.data.new_password}</p>
+            </div>
+            <p class="text-sm text-gray-500 mt-4">
+              <i class="fas fa-info-circle mr-1"></i>
+              ${response.data.info}
+            </p>
+          </div>
+        `,
+        icon: 'success',
+        confirmButtonText: 'OK, Saya Sudah Catat',
+        confirmButtonColor: '#10b981',
+      });
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Gagal mereset password', { id: toastId });
     }
   };
 
@@ -291,25 +342,39 @@ function Members() {
                   </td>
                   {(can('edit_member') || can('remove_member')) && (
                     <td className="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end gap-2">
-                        {can('edit_member') && member.role !== 'Admin' && (
-                          <button
-                            onClick={() => openEditModal(member)}
-                            className="px-3 py-2 text-blue-600 bg-blue-50 rounded-xl hover:bg-blue-100 transition-all duration-300 transform hover:scale-110 shadow-sm hover:shadow-md"
-                          >
-                            <FontAwesomeIcon icon={faEdit} />
-                          </button>
-                        )}
-                        {can('remove_member') && member.role !== 'Admin' && (
-                          <button
-                            onClick={() => handleDeleteMember(member)}
-                            className="px-3 py-2 text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition-all duration-300 transform hover:scale-110 shadow-sm hover:shadow-md"
-                            title="Hapus member"
-                          >
-                            <FontAwesomeIcon icon={faTrash} />
-                          </button>
-                        )}
-                      </div>
+                      {member.user_id === user?.id ? (
+                        <span className="text-xs text-gray-400 italic">Anda</span>
+                      ) : (
+                        <div className="flex justify-end gap-2">
+                          {can('edit_member') && (
+                            <button
+                              onClick={() => handleResetPassword(member)}
+                              className="px-3 py-2 text-yellow-600 bg-yellow-50 rounded-xl hover:bg-yellow-100 transition-all duration-300 transform hover:scale-110 shadow-sm hover:shadow-md"
+                              title="Reset password"
+                            >
+                              <FontAwesomeIcon icon={faKey} />
+                            </button>
+                          )}
+                          {can('edit_member') && member.role !== 'Admin' && (
+                            <button
+                              onClick={() => openEditModal(member)}
+                              className="px-3 py-2 text-blue-600 bg-blue-50 rounded-xl hover:bg-blue-100 transition-all duration-300 transform hover:scale-110 shadow-sm hover:shadow-md"
+                              title="Edit role"
+                            >
+                              <FontAwesomeIcon icon={faEdit} />
+                            </button>
+                          )}
+                          {can('remove_member') && member.role !== 'Admin' && (
+                            <button
+                              onClick={() => handleDeleteMember(member)}
+                              className="px-3 py-2 text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition-all duration-300 transform hover:scale-110 shadow-sm hover:shadow-md"
+                              title="Hapus member"
+                            >
+                              <FontAwesomeIcon icon={faTrash} />
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </td>
                   )}
                 </tr>
@@ -352,9 +417,18 @@ function Members() {
                     </div>
                   </div>
                 </div>
-                {(can('edit_member') || can('remove_member')) && member.role !== 'Admin' && (
+                {(can('edit_member') || can('remove_member')) && member.user_id !== user?.id && (
                   <div className="flex gap-2 pt-3 border-t border-gray-100">
                     {can('edit_member') && (
+                      <button
+                        onClick={() => handleResetPassword(member)}
+                        className="flex-1 px-4 py-2 text-sm font-semibold text-yellow-600 bg-yellow-50 rounded-xl hover:bg-yellow-100 transition-all duration-300 flex items-center justify-center gap-2"
+                      >
+                        <FontAwesomeIcon icon={faKey} />
+                        Reset PW
+                      </button>
+                    )}
+                    {can('edit_member') && member.role !== 'Admin' && (
                       <button
                         onClick={() => openEditModal(member)}
                         className="flex-1 px-4 py-2 text-sm font-semibold text-blue-600 bg-blue-50 rounded-xl hover:bg-blue-100 transition-all duration-300 flex items-center justify-center gap-2"
@@ -363,7 +437,7 @@ function Members() {
                         Edit Role
                       </button>
                     )}
-                    {can('remove_member') && (
+                    {can('remove_member') && member.role !== 'Admin' && (
                       <button
                         onClick={() => handleDeleteMember(member)}
                         className="flex-1 px-4 py-2 text-sm font-semibold text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition-all duration-300 flex items-center justify-center gap-2"
@@ -372,6 +446,11 @@ function Members() {
                         Hapus
                       </button>
                     )}
+                  </div>
+                )}
+                {member.user_id === user?.id && (
+                  <div className="pt-3 border-t border-gray-100 text-center">
+                    <span className="text-xs text-gray-400 italic">Ini akun Anda</span>
                   </div>
                 )}
               </div>

@@ -1,11 +1,13 @@
 """Workspace routes."""
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app import db
+from app import db, bcrypt
 from app.models import Workspace, WorkspaceMember, User, Role
 from app.decorators import require_role
 from datetime import datetime, timedelta
 from typing import Tuple, Dict, Any, Optional
+import secrets
+import string
 
 workspace_bp = Blueprint('workspace', __name__)
 
@@ -638,5 +640,53 @@ def remove_workspace_member(workspace_id: int, member_id: int) -> Tuple[Dict[str
         db.session.rollback()
         return {'error': f'Gagal menghapus member: {str(e)}'}, 500
 
+
+@workspace_bp.route('/<int:workspace_id>/members/<int:member_id>/reset-password', methods=['POST'])
+@jwt_required()
+@require_role('Owner', 'Admin')
+def reset_member_password(workspace_id: int, member_id: int) -> Tuple[Dict[str, Any], int]:
+    """
+    Reset a member's password to a random password.
+
+    Returns:
+        JSON response with new password
+    """
+    try:
+        current_user_id = int(get_jwt_identity())
+
+        # Get membership
+        membership = WorkspaceMember.query.filter_by(
+            id=member_id,
+            workspace_id=workspace_id
+        ).first()
+
+        if not membership:
+            return {'error': 'Member tidak ditemukan'}, 404
+
+        # Get the user
+        user_to_reset = membership.user
+
+        # Prevent resetting own password through this endpoint
+        if user_to_reset.id == current_user_id:
+            return {'error': 'Tidak bisa mereset password sendiri. Gunakan menu Settings.'}, 403
+
+        # Generate random password (8 characters: letters + numbers)
+        alphabet = string.ascii_letters + string.digits
+        new_password = ''.join(secrets.choice(alphabet) for _ in range(8))
+
+        # Hash and update password
+        user_to_reset.hashed_password = bcrypt.generate_password_hash(new_password).decode('utf-8')
+        db.session.commit()
+
+        return {
+            'message': f'Password untuk {user_to_reset.name} berhasil direset',
+            'new_password': new_password,
+            'email': user_to_reset.email,
+            'info': 'Silakan informasikan password baru kepada user melalui email atau komunikasi langsung'
+        }, 200
+
+    except Exception as e:
+        db.session.rollback()
+        return {'error': f'Gagal mereset password: {str(e)}'}, 500
 
 
