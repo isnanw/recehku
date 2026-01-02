@@ -182,9 +182,9 @@ cython_debug/
 .abstra/
 
 # Visual Studio Code
-#  Visual Studio Code specific template is maintained in a separate VisualStudioCode.gitignore 
+#  Visual Studio Code specific template is maintained in a separate VisualStudioCode.gitignore
 #  that can be found at https://github.com/github/gitignore/blob/main/Global/VisualStudioCode.gitignore
-#  and can be added to the global gitignore or merged into this file. However, if you prefer, 
+#  and can be added to the global gitignore or merged into this file. However, if you prefer,
 #  you could uncomment the following to ignore the entire vscode folder
 # .vscode/
 
@@ -205,3 +205,125 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# ==========================================
+# PROJECT SPECIFIC - SECURITY & SENSITIVE FILES
+# ==========================================
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+db.sqlite3
+db.sqlite3-journal
+*.sql
+*.dump
+*.backup
+
+# PostgreSQL
+*.pgdata
+pg_data/
+postgres_data/
+postgresql_data/
+
+# Database migrations (keep versions but ignore data)
+*.pyc
+migrations/__pycache__/
+migrations/versions/__pycache__/
+
+# Configuration files with sensitive data
+config.py
+*.conf
+*.cfg
+!setup.cfg
+
+# Shell scripts (may contain credentials)
+*.sh
+!frontend/setup.sh
+!backend/setup.sh
+
+# Log files
+*.log
+*.log.*
+logs/
+*.out
+nohup.out
+
+# Environment files
+.env
+.env.*
+!.env.example
+.envrc
+*.env.local
+*.env.production
+*.env.development
+
+# Secrets and credentials
+secrets/
+*.key
+*.pem
+*.p12
+*.pfx
+*.cert
+*.crt
+*.csr
+id_rsa*
+*.pub
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+*~
+*.swp
+*.swo
+
+# OS specific
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE specific
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Node modules
+node_modules/
+package-lock.json
+yarn.lock
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+.venv/
+env/
+ENV/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+cache/
+.cache/
+
+# User uploaded files (if any)
+uploads/
+media/
+static_collected/
+
+# Test coverage
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+
+# Documentation builds
+docs/_build/
+site/

@@ -1,281 +1,580 @@
-# Recehku — Smart Personal Finance Tracker
+# 💰 Recehku — Smart Personal Finance Tracker
 
-A lightweight full-stack personal finance tracker (Recehku) with multi-user and multi-workspace support.
+> A comprehensive full-stack personal finance management system with multi-user, multi-workspace support, and advanced financial tracking features.
 
-## 🚀 Features
+[![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/)
+[![React](https://img.shields.io/badge/React-18-61dafb.svg)](https://reactjs.org/)
+[![Flask](https://img.shields.io/badge/Flask-3.0-black.svg)](https://flask.palletsprojects.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-12+-336791.svg)](https://www.postgresql.org/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-- **Multi-User & Multi-Workspace**: Users can belong to multiple workspaces with role-based access control (Owner, Admin, Member, Viewer).
-- **Account Management**: Track multiple account types (Bank, Cash, Credit Card, E-Wallet).
-- **Category Management**: Create and manage hierarchical categories for Income and Expense.
-- **Transaction Management**:
-  - Record Income, Expense, and Transfer transactions.
-  - Filters by date, type, and account; supports monthly tab filtering in the Transactions page.
-- **Dashboard Analytics**:
-  - Total balance across accounts, monthly income/expense summaries.
-  - Expense and income breakdown by category (pie charts). Server-side aggregation endpoint available.
-- **Responsive UI**: Built with Tailwind CSS and Recharts for charts.
+## ✨ Features
+
+### 🏢 Multi-Workspace & Role-Based Access Control
+- Create and manage multiple workspaces for different purposes (Personal, Business, Family)
+- Invite members with granular permissions:
+  - **Owner**: Full control including workspace deletion
+  - **Admin**: Manage settings and members
+  - **Member**: Create and edit transactions
+  - **Viewer**: Read-only access
+- Seamless workspace switching with context preservation
+
+### 💳 Account Management
+- Support for multiple account types:
+  - 🏦 **Bank Accounts**
+  - 💵 **Cash**
+  - 💳 **Credit Cards**
+  - 📱 **E-Wallets** (GoPay, OVO, Dana, ShopeePay, etc.)
+- Real-time balance tracking
+- Account transfer functionality
+- Multi-currency support (IDR focused)
+
+### 📊 Transaction Management
+- Comprehensive transaction types:
+  - ➕ **Income**: Track revenue and earnings
+  - ➖ **Expense**: Monitor spending across categories
+  - 🔄 **Transfer**: Move money between accounts
+- Advanced filtering:
+  - Date range selection
+  - Account-based filtering
+  - Category filtering
+  - Transaction type filtering
+- Monthly tab navigation for quick access
+- Bulk operations support
+
+### 🗂️ Category Management
+- Hierarchical category structure with parent-child relationships
+- Pre-defined categories for Income and Expense
+- Custom category creation
+- Subcategory support for detailed tracking
+- Category-based analytics
+
+### 📈 Analytics Dashboard
+- **Real-time Financial Overview**:
+  - Total balance across all accounts
+  - Monthly income vs expense comparison
+  - Net cash flow analysis
+- **Visual Data Representation**:
+  - 📊 Pie charts for expense/income breakdown by category
+  - 📉 Line charts for trend analysis
+  - 💹 Bar charts for monthly comparisons
+- **Advanced Metrics**:
+  - Top spending categories
+  - Spending patterns by time period
+  - Budget utilization tracking
+
+### 🎯 Budget Planning
+- Create monthly/periodic budgets
+- Automatic income calculation from transactions
+- Budget allocation by category
+- Real-time budget tracking with visual indicators:
+  - Budget Planning (allocated amount)
+  - Realisasi Pengeluaran (actual spending)
+  - Selisih Budget (surplus/deficit)
+  - Progress Periode (time-based progress)
+- Budget activation system (DRAFT/ACTIVE modes)
+- Premium gradient UI with summary cards
+
+### 💎 Investment Tracking (Gold Focus)
+- **Gold Investment Management**:
+  - Track multiple gold types (ANTAM, GALERI24, UBS)
+  - Record purchase details (weight, price, date)
+  - Current price tracking with auto-update
+  - Profit/loss calculation
+- **Gold Price History**:
+  - Automatic daily price logging
+  - Historical price charts with trend analysis
+  - Price comparison across gold types
+  - Buy vs Buyback price tracking
+  - Statistical insights (highest, lowest, average, total change)
+- **Interactive Charts**:
+  - Line charts for price movement
+  - Filter by gold type
+  - Date range selection
+
+### 👥 Member Management
+- Invite users to workspace via email
+- Manage member roles and permissions
+- View member activity
+- Remove or modify member access
+- Pending invitation tracking
 
 ## 🛠️ Tech Stack
 
 ### Backend
-- **Python 3.x** with **Flask**
-- **SQLAlchemy** ORM
-- **PostgreSQL** database
-- **Flask-JWT-Extended** for authentication
-- **Flask-Migrate** for database migrations
-- **Flask-Bcrypt** for password hashing
-- **Flask-CORS** for API access
+```
+Flask               - Web framework
+SQLAlchemy         - ORM for database operations
+PostgreSQL         - Primary database
+Flask-JWT-Extended - JWT authentication
+Flask-Migrate      - Database migrations (Alembic)
+Flask-Bcrypt       - Password hashing
+Flask-CORS         - Cross-origin resource sharing
+PyTZ               - Timezone support (WIB/Asia Jakarta)
+Requests           - HTTP library for external APIs
+```
 
 ### Frontend
-- **React 18** with **Vite**
-- **Tailwind CSS** for styling
-- **React Router DOM** for navigation
-- **Axios** for API requests
-- **Recharts** for data visualization
+```
+React 18           - UI library
+Vite               - Build tool and dev server
+React Router DOM   - Client-side routing
+Axios              - HTTP client
+Tailwind CSS       - Utility-first CSS framework
+Recharts           - Chart library for data visualization
+FontAwesome        - Icon library
+SweetAlert2        - Beautiful alert/modal dialogs
+React Hot Toast    - Toast notifications
+```
 
 ## 📋 Prerequisites
 
-- Python 3.8+
-- Node.js 16+
-- PostgreSQL 12+
+Before you begin, ensure you have the following installed:
 
-## 🔧 Installation
+- **Python 3.9+** - [Download](https://www.python.org/downloads/)
+- **Node.js 16+** - [Download](https://nodejs.org/)
+- **PostgreSQL 12+** - [Download](https://www.postgresql.org/download/)
+- **Git** - [Download](https://git-scm.com/downloads/)
+
+## 🚀 Quick Start
 
 ### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/isnanw/recehku.git
+cd recehku
 ```
 
 ### 2. Backend Setup
 
+#### Create Virtual Environment
 ```bash
 cd backend
-
-# Create virtual environment (we use a local .venv)
-python -m venv .venv
-
-# Activate virtual environment
-# On macOS/Linux:
-source .venv/bin/activate
-# On Windows:
-# .venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Create .env file
-cp .env.example .env
-
-# Update .env with your database credentials
-# Edit DATABASE_URL, SECRET_KEY, and JWT_SECRET_KEY
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-### 3. Database Setup
+#### Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+#### Configure Environment Variables
+
+**IMPORTANT**: Create a `config.py` file (this file is gitignored for security):
+
+```bash
+# Create config.py in backend directory
+cat > config.py << 'EOF'
+import os
+
+class Config:
+    # Database Configuration
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
+        'postgresql://username:password@localhost/recehku_db'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    # JWT Configuration
+    JWT_SECRET_KEY = 'your-super-secret-jwt-key-change-this-in-production'
+    JWT_ACCESS_TOKEN_EXPIRES = 86400  # 24 hours
+
+    # Flask Configuration
+    SECRET_KEY = 'your-super-secret-key-change-this-in-production'
+    DEBUG = False
+EOF
+```
+
+**Security Note**:
+- ⚠️ **NEVER commit `config.py` to version control**
+- ⚠️ Change the secret keys to random secure strings
+- ⚠️ Use strong database credentials
+
+#### Setup Database
 
 ```bash
 # Create PostgreSQL database
-createdb finance_tracker
+createdb recehku_db
 
-# Or using psql:
+# Or using psql
 psql -U postgres
-CREATE DATABASE finance_tracker;
+CREATE DATABASE recehku_db;
 \q
-
-# Initialize migrations
-flask db init
-flask db migrate -m "Initial migration"
-flask db upgrade
-
-# Create default roles
-python -c "
-from app import create_app, db
-from app.models import Role
-
-app = create_app()
-with app.app_context():
-    roles = ['Owner', 'Admin', 'Member', 'Viewer']
-    for role_name in roles:
-        if not Role.query.filter_by(name=role_name).first():
-            role = Role(name=role_name)
-            db.session.add(role)
-    db.session.commit()
-    print('Roles created successfully!')
-"
 ```
 
-### 4. Frontend Setup
+#### Run Migrations
+```bash
+flask db upgrade
+```
+
+#### Create Initial Owner User
+```bash
+python setup_owner.py
+```
+
+#### Start Backend Server
+```bash
+python run.py
+# Server will run on http://localhost:5000
+```
+
+### 3. Frontend Setup
 
 ```bash
-cd ../frontend
+# Open new terminal
+cd frontend
 
 # Install dependencies
 npm install
 
-# Create .env file (optional)
-cp .env.example .env
-```
-
-## 🚀 Running the Application
-
-### Start Backend Server
-
-```bash
-cd backend
-source .venv/bin/activate  # On macOS/Linux
-# The server listens on port 5001 by default. To avoid port conflicts you can override with PORT:
-PORT=5002 python run.py
-```
-
-Backend will run on `http://localhost:5001` (or the `PORT` you set)
-
-### Start Frontend Development Server
-
-```bash
-cd frontend
+# Start development server
 npm run dev
+# Frontend will run on http://localhost:5173
 ```
 
-Frontend will run on `http://localhost:3000`
+### 4. Access Application
 
-## 📱 Usage
+Open your browser and navigate to:
+```
+http://localhost:5173
+```
 
-1. **Register**: Create a new account at `/register`
-2. **Login**: Sign in at `/login`
-3. **Dashboard**: View your financial overview
-4. **Accounts**: Create and manage your financial accounts
-5. **Categories**: Set up income and expense categories
-6. **Transactions**: Record and track all your financial transactions
+Login with the owner credentials you created in the setup.
 
-## 🏗️ Project Structure
+## 📁 Project Structure
 
 ```
-keuangan/
+recehku/
 ├── backend/
 │   ├── app/
-│   │   ├── __init__.py          # Flask app factory
-│   │   ├── models.py            # Database models
-│   │   └── routes/              # API endpoints
-│   │       ├── auth.py
-│   │       ├── workspace.py
-│   │       ├── account.py
-│   │       ├── category.py
-│   │       └── transaction.py
-│   ├── config.py                # Configuration
-│   ├── run.py                   # Application entry point
-│   └── requirements.txt         # Python dependencies
+│   │   ├── __init__.py           # Flask app factory
+│   │   ├── models.py             # Database models
+│   │   ├── decorators.py         # Custom decorators
+│   │   └── routes/
+│   │       ├── __init__.py       # Blueprint registration
+│   │       ├── auth.py           # Authentication endpoints
+│   │       ├── workspace.py      # Workspace management
+│   │       ├── account.py        # Account CRUD
+│   │       ├── category.py       # Category management
+│   │       ├── transaction.py    # Transaction operations
+│   │       ├── analytics.py      # Dashboard analytics
+│   │       ├── budget.py         # Budget planning
+│   │       ├── investment.py     # Investment tracking
+│   │       └── gold_price.py     # Gold price history
+│   ├── migrations/               # Alembic migrations
+│   ├── config.py                 # Configuration (gitignored)
+│   ├── requirements.txt          # Python dependencies
+│   ├── run.py                    # Application entry point
+│   └── setup_owner.py            # Owner user setup script
 │
-└── frontend/
-    ├── src/
-    │   ├── components/          # React components
-    │   │   ├── Layout.jsx
-    │   │   └── PrivateRoute.jsx
-    │   ├── context/             # Context providers
-    │   │   ├── AuthContext.jsx
-    │   │   └── WorkspaceContext.jsx
-    │   ├── pages/               # Page components
-    │   │   ├── Login.jsx
-    │   │   ├── Register.jsx
-    │   │   ├── Dashboard.jsx
-    │   │   ├── Accounts.jsx
-    │   │   ├── Categories.jsx
-    │   │   └── Transactions.jsx
-    │   ├── utils/               # Utilities
-    │   │   └── api.js
-    │   ├── App.jsx              # Main app component
-    │   ├── main.jsx             # Entry point
-    │   └── index.css            # Global styles
-    └── package.json             # Node dependencies
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── Layout.jsx        # Main layout with navigation
+│   │   │   ├── Modal.jsx         # Reusable modal component
+│   │   │   ├── PrivateRoute.jsx  # Protected route wrapper
+│   │   │   └── CurrencyInput.jsx # Currency input component
+│   │   ├── context/
+│   │   │   ├── AuthContext.jsx   # Authentication state
+│   │   │   ├── WorkspaceContext.jsx  # Workspace state
+│   │   │   └── PermissionsContext.jsx # Permissions state
+│   │   ├── pages/
+│   │   │   ├── Login.jsx         # Login page
+│   │   │   ├── Register.jsx      # Registration page
+│   │   │   ├── Dashboard.jsx     # Analytics dashboard
+│   │   │   ├── Accounts.jsx      # Account management
+│   │   │   ├── Categories.jsx    # Category management
+│   │   │   ├── Transactions.jsx  # Transaction list
+│   │   │   ├── BudgetPlanning.jsx # Budget planning
+│   │   │   ├── Investments.jsx   # Investment tracking
+│   │   │   └── Members.jsx       # Member management
+│   │   ├── utils/
+│   │   │   └── api.js            # Axios instance & interceptors
+│   │   ├── App.jsx               # Main app component
+│   │   └── main.jsx              # React entry point
+│   ├── package.json              # Node dependencies
+│   ├── vite.config.js            # Vite configuration
+│   └── tailwind.config.js        # Tailwind CSS config
+│
+├── .gitignore                    # Git ignore rules
+├── README.md                     # This file
+├── API_DOCUMENTATION.md          # API endpoints documentation
+├── QUICKSTART.md                 # Quick start guide
+└── TROUBLESHOOTING.md            # Common issues & solutions
 ```
 
-## 🔐 API Endpoints
+## 🗄️ Database Schema
+
+### Core Models
+
+**User** - User accounts with authentication
+- Email, password (hashed), name
+- is_owner flag for super admin
+
+**Workspace** - Organization units for financial data
+- Name, description
+- Owner relationship
+
+**WorkspaceMember** - User-Workspace associations
+- User ID, Workspace ID, Role
+- Invitation system (pending/accepted)
+
+**Role** - Permission levels
+- Owner, Admin, Member, Viewer
+
+**Account** - Financial accounts
+- Name, type, balance, currency
+- Workspace association
+
+**Category** - Transaction categories
+- Name, type (Income/Expense)
+- Parent-child hierarchy support
+
+**Transaction** - Financial transactions
+- Amount, date, description
+- Type (Income, Expense, Transfer)
+- Account and category relationships
+
+**BudgetPlan** - Budget planning
+- Period (start/end dates)
+- Income amount, status (DRAFT/ACTIVE)
+- Category allocations
+
+**Investment** - Investment tracking
+- Type (GOLD, etc.)
+- Buy price, current price, quantity
+- Profit/loss calculation
+
+**GoldPrice** - Historical gold prices
+- Date, price per gram, buyback price
+- Source (ANTAM, GALERI24, UBS)
+- Global across all workspaces
+
+**GoldPriceSetting** - Workspace-specific gold prices
+- Buy and buyback prices per gold type
+- Updated by workspace owners
+
+## 🔐 Security Features
+
+- **Password Security**: Bcrypt hashing with salt
+- **JWT Authentication**: Secure token-based auth
+- **Role-Based Access Control**: Granular permissions
+- **SQL Injection Protection**: SQLAlchemy ORM
+- **CORS Configuration**: Controlled API access
+- **Environment Variables**: Sensitive data protection
+- **Git Security**: Comprehensive .gitignore for secrets
+
+### Protected Files (Gitignored)
+```
+config.py           # Database & secret keys
+*.sh                # Shell scripts with credentials
+*.log               # Application logs
+.env                # Environment variables
+*.db, *.sql         # Database files
+*.key, *.pem        # Private keys
+nohup.out           # Background process logs
+```
+
+## 📊 API Endpoints
 
 ### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login user
-- `GET /api/auth/me` - Get current user
+- `POST /api/register` - Register new user
+- `POST /api/login` - User login
+- `GET /api/me` - Get current user info
 
 ### Workspaces
-- `GET /api/workspaces` - Get all workspaces
+- `GET /api/workspaces` - List user workspaces
 - `POST /api/workspaces` - Create workspace
-- `GET /api/workspaces/:id` - Get workspace details
 - `PUT /api/workspaces/:id` - Update workspace
 - `DELETE /api/workspaces/:id` - Delete workspace
+- `POST /api/workspaces/:id/switch` - Switch workspace
 
 ### Accounts
-- `GET /api/accounts` - Get all accounts (requires workspace_id)
+- `GET /api/accounts` - List accounts
 - `POST /api/accounts` - Create account
-- `GET /api/accounts/:id` - Get account details
 - `PUT /api/accounts/:id` - Update account
 - `DELETE /api/accounts/:id` - Delete account
 
-### Categories
-- `GET /api/categories` - Get all categories (requires workspace_id)
-- `POST /api/categories` - Create category
-- `GET /api/categories/:id` - Get category details
-- `PUT /api/categories/:id` - Update category
-- `DELETE /api/categories/:id` - Delete category
-
-- ### Transactions
-- `GET /api/transactions` - Get transactions (supports filtering and pagination via `page` and `per_page` query params)
+### Transactions
+- `GET /api/transactions` - List transactions (with filters)
 - `POST /api/transactions` - Create transaction
-- `GET /api/transactions/:id` - Get transaction details
 - `PUT /api/transactions/:id` - Update transaction
 - `DELETE /api/transactions/:id` - Delete transaction
-- `GET /api/transactions/summary` - Get financial summary
 
-### Analytics
+### Budget
+- `GET /api/budget/plans` - List budget plans
+- `POST /api/budget/plans` - Create budget plan
+- `POST /api/budget/plans/:id/activate` - Activate budget
+- `GET /api/budget/calculate-income` - Calculate income
 
-- `GET /api/analytics/income-by-category` - Aggregate income by category on the server (supports `workspace_id`, `start_date`, `end_date`, `top_n`). The frontend will use this endpoint when available; otherwise it falls back to client-side paginated aggregation using `/api/transactions`.
+### Investments
+- `GET /api/investments` - List investments
+- `POST /api/investments` - Create investment
+- `GET /api/investments/gold-price` - Get gold prices
+- `POST /api/investments/gold-price/settings/bulk` - Update prices
+- `GET /api/investments/gold-price/history` - Price history
 
-## 🎨 Key Features Explained
+*For complete API documentation, see [API_DOCUMENTATION.md](API_DOCUMENTATION.md)*
 
-### Transaction Types
+## 🎨 UI Features
 
-1. **Income**: Money coming into an account
-   - Requires: Account, Category, Amount, Date
+### Design System
+- **Color Palette**: Gradient-based with blue, indigo, amber, green themes
+- **Typography**: Modern, clean font hierarchy
+- **Components**: Reusable, consistent design patterns
+- **Responsive**: Mobile-first approach with Tailwind breakpoints
+- **Icons**: FontAwesome for consistent iconography
+- **Charts**: Recharts for beautiful data visualization
 
-2. **Expense**: Money going out of an account
-   - Requires: Account, Category, Amount, Date
+### User Experience
+- **Toast Notifications**: Real-time feedback with react-hot-toast
+- **Modal Dialogs**: SweetAlert2 for confirmations
+- **Loading States**: Skeleton screens and spinners
+- **Error Handling**: User-friendly error messages
+- **Keyboard Shortcuts**: Quick navigation support
+- **Dark Mode Ready**: CSS structure for theme switching
 
-3. **Transfer**: Money moving between accounts
-   - Requires: From Account, To Account, Amount, Date
-   - No category needed
+## 🔧 Development
 
-### Role-Based Access Control
+### Running Tests
+```bash
+# Backend tests (when implemented)
+cd backend
+pytest
 
-- **Owner**: Full control, can delete workspace
-- **Admin**: Can manage workspace and invite users
-- **Member**: Can create/edit transactions, accounts, categories
-- **Viewer**: Read-only access
+# Frontend tests (when implemented)
+cd frontend
+npm test
+```
+
+### Database Migrations
+
+#### Create New Migration
+```bash
+cd backend
+flask db migrate -m "description of changes"
+```
+
+#### Apply Migrations
+```bash
+flask db upgrade
+```
+
+#### Rollback Migration
+```bash
+flask db downgrade
+```
+
+### Code Quality
+
+#### Backend
+```bash
+# Format code
+black .
+
+# Lint code
+flake8 .
+```
+
+#### Frontend
+```bash
+# Format code
+npm run format
+
+# Lint code
+npm run lint
+```
+
+## 🚢 Deployment
+
+### Production Checklist
+
+- [ ] Change all secret keys in `config.py`
+- [ ] Set `DEBUG = False` in config
+- [ ] Use production-grade database
+- [ ] Configure CORS for production domain
+- [ ] Set up HTTPS/SSL certificates
+- [ ] Configure reverse proxy (Nginx/Apache)
+- [ ] Set up monitoring and logging
+- [ ] Configure backup strategy
+- [ ] Set environment variables properly
+- [ ] Test all features in production mode
+
+### Environment Variables
+
+Create `.env` file (gitignored):
+```env
+DATABASE_URL=postgresql://user:pass@localhost/recehku_prod
+JWT_SECRET_KEY=your-production-jwt-secret
+SECRET_KEY=your-production-secret-key
+FLASK_ENV=production
+CORS_ORIGINS=https://yourdomain.com
+```
 
 ## 🤝 Contributing
 
-This is a personal project, but suggestions and improvements are welcome!
+Contributions are welcome! However, please note:
 
-## 📄 License
+1. **Security First**: Never commit sensitive files (credentials, keys, logs)
+2. **Follow .gitignore**: Respect the gitignore rules
+3. **Code Quality**: Follow existing code style and patterns
+4. **Documentation**: Update docs for new features
+5. **Testing**: Add tests for new functionality
 
-MIT License
+### Setup for Contributors
+```bash
+# Fork the repository
+# Clone your fork
+git clone https://github.com/YOUR_USERNAME/recehku.git
+
+# Create feature branch
+git checkout -b feature/amazing-feature
+
+# Make changes and commit
+git commit -m "Add amazing feature"
+
+# Push to your fork
+git push origin feature/amazing-feature
+
+# Open Pull Request
+```
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 👨‍💻 Author
 
-Built with ❤️ by Isnan Wahyudi
+**Isnan Wibowo**
+- GitHub: [@isnanw](https://github.com/isnanw)
 
-## 🐛 Known Issues
+## 🙏 Acknowledgments
 
-None at the moment. Please report any issues you encounter.
+- Flask framework and community
+- React team for amazing UI library
+- Tailwind CSS for utility-first CSS
+- Recharts for beautiful charts
+- All open-source contributors
 
-## 🔮 Future Enhancements
+## 📞 Support
 
-- [ ] Budget management
-- [ ] Recurring transactions
-- [ ] Financial goals tracking
-- [ ] Export to CSV/PDF
+For issues, questions, or suggestions:
+- Open an issue on GitHub
+- Check [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for common problems
+- Review [QUICKSTART.md](QUICKSTART.md) for setup help
+
+## 🗺️ Roadmap
+
 - [ ] Multi-currency support
-- [ ] Mobile app
-- [ ] Email notifications
-- [ ] Advanced analytics and reports
+- [ ] Recurring transactions
+- [ ] Budget alerts and notifications
+- [ ] Export to CSV/PDF
+- [ ] Mobile app (React Native)
+- [ ] Dark mode
+- [ ] More investment types (stocks, crypto)
+- [ ] Financial goals tracking
+- [ ] AI-powered insights
+- [ ] Integration with banking APIs
 
 ---
 
-**Happy Finance Tracking! 💰📊**
+Made with ❤️ for better personal finance management
