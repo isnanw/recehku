@@ -69,8 +69,8 @@ const Layout = () => {
   const navItems = [
     { path: '/dashboard', label: 'Dashboard', icon: faChartLine },
     { path: '/transactions', label: 'Transaksi', icon: faExchangeAlt },
-    { path: '/investments', label: 'Investasi', icon: faCoins },
     { path: '/budget', label: 'Budget', icon: faWallet },
+    { path: '/investments', label: 'Investasi', icon: faCoins },
     {
       type: 'dropdown',
       label: 'Master',
@@ -453,7 +453,13 @@ const Layout = () => {
       {/* Main Content with padding for fixed navbar */}
       <main className="pt-20 min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="animate-fadeIn">
+          <div
+            key={location.pathname}
+            className="animate-fadeIn"
+            style={{
+              animation: 'fadeIn 0.15s ease-in-out'
+            }}
+          >
             <Outlet />
           </div>
         </div>

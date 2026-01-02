@@ -17,55 +17,60 @@ import Layout from './components/Layout';
 
 function App() {
   return (
-    <AuthProvider>
-      <WorkspaceProvider>
-        <PermissionsProvider>
-          <Router>
-          <Toaster
-            position="top-right"
-            reverseOrder={false}
-            toastOptions={{
-              duration: 3000,
-              style: {
-                background: '#363636',
-                color: '#fff',
-              },
-              success: {
-                duration: 3000,
-                iconTheme: {
-                  primary: '#10B981',
-                  secondary: '#fff',
-                },
-              },
-              error: {
-                duration: 4000,
-                iconTheme: {
-                  primary: '#EF4444',
-                  secondary: '#fff',
-                },
-              },
-            }}
-          />
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+    <Router>
+      <Toaster
+        position="top-right"
+        reverseOrder={false}
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: '#10B981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            duration: 4000,
+            iconTheme: {
+              primary: '#EF4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
+      <Routes>
+        {/* Login and Register outside all providers to prevent remount */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-            <Route element={<PrivateRoute><Layout /></PrivateRoute>}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/accounts" element={<Accounts />} />
-              <Route path="/categories" element={<Categories />} />
-              <Route path="/transactions" element={<Transactions />} />
-              <Route path="/investments" element={<Investments />} />
-              <Route path="/budget" element={<BudgetPlanning />} />
-              <Route path="/members" element={<Members />} />
-            </Route>
-
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-          </Router>
-        </PermissionsProvider>
-      </WorkspaceProvider>
-    </AuthProvider>
+        {/* All other routes inside providers */}
+        <Route path="/*" element={
+          <AuthProvider>
+            <WorkspaceProvider>
+              <PermissionsProvider>
+                <Routes>
+                  <Route element={<PrivateRoute><Layout /></PrivateRoute>}>
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/accounts" element={<Accounts />} />
+                    <Route path="/categories" element={<Categories />} />
+                    <Route path="/transactions" element={<Transactions />} />
+                    <Route path="/investments" element={<Investments />} />
+                    <Route path="/budget" element={<BudgetPlanning />} />
+                    <Route path="/members" element={<Members />} />
+                  </Route>
+                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                </Routes>
+              </PermissionsProvider>
+            </WorkspaceProvider>
+          </AuthProvider>
+        } />
+      </Routes>
+    </Router>
   );
 }
 

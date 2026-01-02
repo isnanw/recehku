@@ -1,29 +1,91 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import toast from 'react-hot-toast';
+import api from '../utils/api';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
   const navigate = useNavigate();
+  const isSubmitting = useRef(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    const result = await login(email, password);
-
-    if (result.success) {
-      navigate('/dashboard');
-    } else {
-      setError(result.error);
+  const handleSubmit = useCallback(async (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
     }
 
-    setLoading(false);
+    // Prevent multiple submissions
+    if (isSubmitting.current || loading) {
+      return;
+    }
+
+    isSubmitting.current = true;
+    setLoading(true);
+
+    try {
+      // Direct API call instead of using context
+      const response = await api.post('/auth/login', { email, password });
+
+      // Success - save token, user, and workspaces
+      localStorage.setItem('token', response.data.access_token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      localStorage.setItem('workspaces', JSON.stringify(response.data.workspaces));
+      
+      // Set current workspace to first workspace if not set
+      if (response.data.workspaces && response.data.workspaces.length > 0) {
+        const savedWorkspaceId = localStorage.getItem('currentWorkspaceId');
+        if (!savedWorkspaceId) {
+          localStorage.setItem('currentWorkspaceId', response.data.workspaces[0].id.toString());
+        }
+      }
+
+      toast.success('Login berhasil! Mengarahkan ke dashboard...', {
+        duration: 2000,
+      });
+
+      isSubmitting.current = false;
+
+      // Navigate with full reload to ensure all contexts are properly initialized
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 500);
+
+    } catch (error) {
+      // Failed - show error toast that persists
+      isSubmitting.current = false;
+      setLoading(false);
+
+      const errorMessage = error.response?.data?.error || 'Email atau password salah. Silakan periksa kembali.';
+
+      toast.error(errorMessage, {
+        duration: 6000, // 6 seconds - long enough to read
+        style: {
+          background: '#FEE2E2',
+          color: '#991B1B',
+          border: '1px solid #FCA5A5',
+          padding: '16px',
+          fontSize: '14px',
+          fontWeight: '500',
+        },
+        icon: '❌',
+      });
+    }
+  }, [email, password, loading, navigate]);
+
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleSubmit();
+    return false;
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSubmit();
+    }
   };
 
   return (
@@ -35,13 +97,7 @@ const Login = () => {
             <p className="text-gray-600">Masuk untuk mengelola keuangan Anda</p>
           </div>
 
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-4" onSubmit={(e) => e.preventDefault()}>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                 Email
@@ -51,9 +107,10 @@ const Login = () => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={handleKeyPress}
+                autoComplete="off"
                 className="input-field"
                 placeholder="anda@contoh.com"
-                required
               />
             </div>
 
@@ -66,20 +123,22 @@ const Login = () => {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={handleKeyPress}
+                autoComplete="off"
                 className="input-field"
                 placeholder="••••••••"
-                required
               />
             </div>
 
             <button
-              type="submit"
+              type="button"
+              onClick={handleSubmit}
               disabled={loading}
               className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Sedang masuk...' : 'Masuk'}
             </button>
-          </form>
+          </div>
 
           <div className="mt-6 text-center">
             <p className="text-gray-600">

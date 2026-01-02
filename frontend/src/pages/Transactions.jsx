@@ -61,20 +61,37 @@ const Transaksi = () => {
     description: '',
   });
 
-  // Filter state
-  const [filters, setFilters] = useState({
-    start_date: '',
-    end_date: '',
-    type: '',
-    account_id: '',
+  // Filter state - Default to current month
+  const [filters, setFilters] = useState(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const firstDay = `${year}-${month}-01`;
+    const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
+    const lastDayFormatted = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
+
+    return {
+      start_date: firstDay,
+      end_date: lastDayFormatted,
+      type: '',
+      account_id: '',
+    };
   });
 
-  // Date range state for picker
-  const [dateRange, setDateRange] = useState([{
-    startDate: null,
-    endDate: null,
-    key: 'selection'
-  }]);
+  // Date range state for picker - Default to current month
+  const [dateRange, setDateRange] = useState(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+
+    return [{
+      startDate: firstDay,
+      endDate: lastDay,
+      key: 'selection'
+    }];
+  });
   const [showDateRangePicker, setShowDateRangePicker] = useState(false);
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
 
@@ -335,14 +352,18 @@ const Transaksi = () => {
 
     // Add parent categories
     parentCategories.forEach(parent => {
+      // Check if this parent has children
+      const children = childCategories.filter(child => child.parent_id === parent.id);
+      const hasChildren = children.length > 0;
+
       options.push({
         value: parent.id,
         label: parent.name,
-        isParent: true
+        isParent: true,
+        isDisabled: hasChildren // Disable if has children
       });
 
       // Add children of this parent
-      const children = childCategories.filter(child => child.parent_id === parent.id);
       children.forEach(child => {
         options.push({
           value: child.id,
@@ -362,6 +383,39 @@ const Transaksi = () => {
     return options;
   };
 
+  // Custom filter untuk pencarian kategori
+  // Jika search cocok dengan parent → tampilkan parent + semua children
+  // Jika search cocok dengan child → tampilkan parent + child yang cocok
+  const filterCategoryOption = (option, inputValue) => {
+    if (!inputValue) return true;
+
+    const searchText = inputValue.toLowerCase();
+    const optionLabel = option.label.toLowerCase().replace(/^\s*↳\s*/, ''); // Remove arrow prefix
+
+    // Jika option ini cocok langsung
+    if (optionLabel.includes(searchText)) {
+      return true;
+    }
+
+    // Jika ini parent, cek apakah ada child yang cocok
+    if (option.data.isParent) {
+      const allOptions = formatCategoriesForSelect();
+      const hasMatchingChild = allOptions.some(opt =>
+        opt.isChild &&
+        opt.parent === option.label &&
+        opt.label.toLowerCase().replace(/^\s*↳\s*/, '').includes(searchText)
+      );
+      return hasMatchingChild;
+    }
+
+    // Jika ini child, cek apakah parentnya cocok
+    if (option.data.isChild && option.data.parent) {
+      return option.data.parent.toLowerCase().includes(searchText);
+    }
+
+    return false;
+  };
+
   // Custom styles for react-select
   const selectStyles = {
     control: (base) => ({
@@ -378,19 +432,27 @@ const Transaksi = () => {
         boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)'
       }
     }),
-    option: (base, { data, isSelected, isFocused }) => ({
+    option: (base, { data, isSelected, isFocused, isDisabled }) => ({
       ...base,
-      backgroundColor: isSelected
+      backgroundColor: isDisabled
+        ? '#f3f4f6'
+        : isSelected
         ? '#3b82f6'
         : isFocused
         ? '#eff6ff'
         : 'white',
-      color: isSelected ? 'white' : data.isChild ? '#6b7280' : '#111827',
+      color: isDisabled
+        ? '#9ca3af'
+        : isSelected
+        ? 'white'
+        : data.isChild
+        ? '#6b7280'
+        : '#111827',
       fontWeight: data.isParent ? '600' : data.isChild ? '400' : '500',
       padding: '0.75rem 1rem',
-      cursor: 'pointer',
+      cursor: isDisabled ? 'not-allowed' : 'pointer',
       '&:active': {
-        backgroundColor: '#3b82f6'
+        backgroundColor: isDisabled ? '#f3f4f6' : '#3b82f6'
       }
     }),
     menu: (base) => ({
@@ -581,6 +643,7 @@ const Transaksi = () => {
                     placeholder="Pilih Kategori..."
                     isSearchable
                     isClearable
+                    filterOption={filterCategoryOption}
                     noOptionsMessage={() => "Kategori tidak ditemukan"}
                     className="text-sm"
                   />
