@@ -25,13 +25,15 @@ import {
   faBriefcase,
   faClock,
   faExternalLinkAlt,
-  faInfoCircle
+  faInfoCircle,
+  faChevronDown
 } from '@fortawesome/free-solid-svg-icons';
 import toast from 'react-hot-toast';
 import Swal from 'sweetalert2';
 import Modal from '../components/Modal';
 import CurrencyInput from '../components/CurrencyInput';
 import api from '../utils/api';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const Investments = () => {
   const { currentWorkspace } = useWorkspace();
@@ -57,6 +59,9 @@ const Investments = () => {
   });
 
   const [goldPrices, setGoldPrices] = useState(null);
+  const [priceHistory, setPriceHistory] = useState([]);
+  const [showPriceHistoryModal, setShowPriceHistoryModal] = useState(false);
+  const [selectedGoldType, setSelectedGoldType] = useState('ALL'); // Filter untuk jenis emas
 
   const [priceSettings, setPriceSettings] = useState({
     ANTAM: { buy_price: '', buyback_price: '', source_link: '' },
@@ -77,6 +82,7 @@ const Investments = () => {
       fetchInvestments();
       fetchAccounts();
       fetchGoldPrice();
+      fetchPriceHistory();
     }
   }, [currentWorkspace]);
 
@@ -127,6 +133,17 @@ const Investments = () => {
       }
     } catch (error) {
       console.error('Failed to fetch gold price:', error);
+    }
+  };
+
+  const fetchPriceHistory = async () => {
+    try {
+      const response = await api.get('/investments/gold-price/history', {
+        params: { limit: 30 }
+      });
+      setPriceHistory(response.data.history || []);
+    } catch (error) {
+      console.error('Failed to fetch price history:', error);
     }
   };
 
@@ -258,6 +275,7 @@ const Investments = () => {
       toast.success('Harga emas berhasil diperbarui!', { id: loadingToast });
       setShowPriceSettingModal(false);
       fetchGoldPrice();
+      fetchPriceHistory();
     } catch (error) {
       toast.error(error.response?.data?.error || 'Gagal menyimpan harga', { id: loadingToast });
     }
@@ -421,6 +439,13 @@ const Investments = () => {
 
       {/* Auto Update Button */}
       <div className="flex justify-end gap-3">
+        <button
+          onClick={() => setShowPriceHistoryModal(true)}
+          className="px-6 py-3 bg-gradient-to-r from-amber-600 to-yellow-600 text-white rounded-xl hover:shadow-lg transition-all font-semibold flex items-center gap-2"
+        >
+          <FontAwesomeIcon icon={faChartLine} />
+          Lihat Histori Harga
+        </button>
         {user?.is_owner && (
           <button
             onClick={() => setShowPriceSettingModal(true)}
@@ -992,6 +1017,259 @@ const Investments = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Modal Histori Harga Emas */}
+      {showPriceHistoryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-7xl max-h-[90vh] overflow-hidden flex flex-col my-8">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold flex items-center gap-3">
+                    <FontAwesomeIcon icon={faChartLine} />
+                    Histori Harga Emas
+                  </h2>
+                  <p className="mt-1 text-amber-50">Pantau pergerakan harga emas setiap hari</p>
+                </div>
+                <button
+                  onClick={() => setShowPriceHistoryModal(false)}
+                  className="text-white hover:bg-white/20 rounded-lg p-2 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 overflow-y-auto flex-1">
+              {priceHistory.length === 0 ? (
+                <div className="text-center py-16 text-gray-500">
+                  <FontAwesomeIcon icon={faInfoCircle} className="text-5xl mb-4" />
+                  <p className="text-xl font-semibold">Belum ada histori harga emas</p>
+                  <p className="text-sm mt-2">Histori akan tersimpan setiap kali Anda mengatur harga</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Filter Jenis Emas */}
+                  <div className="flex gap-2 flex-wrap">
+                    {['ALL', 'ANTAM', 'GALERI24', 'UBS'].map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setSelectedGoldType(type)}
+                        className={`px-6 py-3 rounded-lg font-medium transition-all ${
+                          selectedGoldType === type
+                            ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-white shadow-md'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {type === 'ALL' ? 'Semua' : type}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Statistik Cards */}
+                  {(() => {
+                    const filteredData = selectedGoldType === 'ALL'
+                      ? priceHistory
+                      : priceHistory.filter(h => h.source === selectedGoldType);
+
+                    if (filteredData.length === 0) {
+                      return (
+                        <div className="text-center py-16 text-gray-500">
+                          <FontAwesomeIcon icon={faInfoCircle} className="text-4xl mb-3" />
+                          <p className="text-lg">Tidak ada data untuk {selectedGoldType}</p>
+                        </div>
+                      );
+                    }
+
+                    const prices = filteredData.map(h => h.price_per_gram);
+                    const maxPrice = Math.max(...prices);
+                    const minPrice = Math.min(...prices);
+                    const avgPrice = prices.reduce((a, b) => a + b, 0) / prices.length;
+
+                    const latestPrice = filteredData[0].price_per_gram;
+                    const oldestPrice = filteredData[filteredData.length - 1].price_per_gram;
+                    const totalChange = ((latestPrice - oldestPrice) / oldestPrice) * 100;
+
+                    return (
+                      <>
+                        {/* Stats Cards */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-5 rounded-xl border-2 border-green-200">
+                            <div className="text-sm text-green-600 font-medium mb-2">Harga Tertinggi</div>
+                            <div className="text-2xl font-bold text-green-700">{formatCurrency(maxPrice)}</div>
+                          </div>
+                          <div className="bg-gradient-to-br from-red-50 to-rose-50 p-5 rounded-xl border-2 border-red-200">
+                            <div className="text-sm text-red-600 font-medium mb-2">Harga Terendah</div>
+                            <div className="text-2xl font-bold text-red-700">{formatCurrency(minPrice)}</div>
+                          </div>
+                          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-5 rounded-xl border-2 border-blue-200">
+                            <div className="text-sm text-blue-600 font-medium mb-2">Harga Rata-rata</div>
+                            <div className="text-2xl font-bold text-blue-700">{formatCurrency(avgPrice)}</div>
+                          </div>
+                          <div className={`bg-gradient-to-br p-5 rounded-xl border-2 ${
+                            totalChange >= 0
+                              ? 'from-emerald-50 to-green-50 border-emerald-200'
+                              : 'from-red-50 to-rose-50 border-red-200'
+                          }`}>
+                            <div className={`text-sm font-medium mb-2 ${totalChange >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                              Perubahan Total
+                            </div>
+                            <div className={`text-2xl font-bold flex items-center gap-2 ${
+                              totalChange >= 0 ? 'text-emerald-700' : 'text-red-700'
+                            }`}>
+                              <FontAwesomeIcon icon={totalChange >= 0 ? faArrowTrendUp : faArrowTrendDown} />
+                              {Math.abs(totalChange).toFixed(2)}%
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Grafik */}
+                        <div className="bg-white p-6 rounded-xl border-2 border-gray-200 shadow-sm">
+                          <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                            <FontAwesomeIcon icon={faChartLine} className="text-amber-600" />
+                            Pergerakan Harga {selectedGoldType === 'ALL' ? 'Semua Jenis Emas' : selectedGoldType}
+                          </h4>
+                          <ResponsiveContainer width="100%" height={400}>
+                            <LineChart
+                              data={[...filteredData].reverse().map(h => ({
+                                date: new Date(h.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }),
+                                'Harga Beli': h.price_per_gram,
+                                'Harga Buyback': h.buyback_price || 0,
+                                source: h.source
+                              }))}
+                              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                            >
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis dataKey="date" />
+                              <YAxis
+                                tickFormatter={(value) => `${(value / 1000000).toFixed(1)}jt`}
+                              />
+                              <Tooltip
+                                formatter={(value) => formatCurrency(value)}
+                                labelStyle={{ color: '#374151' }}
+                              />
+                              <Legend />
+                              <Line
+                                type="monotone"
+                                dataKey="Harga Beli"
+                                stroke="#f59e0b"
+                                strokeWidth={3}
+                                dot={{ fill: '#f59e0b', r: 5 }}
+                                activeDot={{ r: 7 }}
+                              />
+                              <Line
+                                type="monotone"
+                                dataKey="Harga Buyback"
+                                stroke="#3b82f6"
+                                strokeWidth={3}
+                                dot={{ fill: '#3b82f6', r: 5 }}
+                                activeDot={{ r: 7 }}
+                              />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+
+                        {/* Data Table */}
+                        <div className="bg-white rounded-xl border-2 border-gray-200 shadow-sm">
+                          <div className="p-4 border-b border-gray-200">
+                            <h4 className="font-semibold text-gray-800 flex items-center gap-2">
+                              <FontAwesomeIcon icon={faCalendar} className="text-gray-600" />
+                              Detail Histori Harga ({filteredData.length} data)
+                            </h4>
+                          </div>
+                          <div className="p-4 space-y-3 max-h-96 overflow-y-auto">
+                            {filteredData.map((history, index) => {
+                              const previousPrice = filteredData[index + 1];
+                              const priceChange = previousPrice
+                                ? ((history.price_per_gram - previousPrice.price_per_gram) / previousPrice.price_per_gram) * 100
+                                : null;
+
+                              return (
+                                <div
+                                  key={history.id}
+                                  className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-white rounded-lg border border-gray-200 hover:border-amber-300 hover:shadow-md transition-all"
+                                >
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <FontAwesomeIcon icon={faCalendar} className="text-gray-400" />
+                                      <span className="font-semibold text-gray-800">
+                                        {new Date(history.date).toLocaleDateString('id-ID', {
+                                          weekday: 'long',
+                                          day: '2-digit',
+                                          month: 'long',
+                                          year: 'numeric'
+                                        })}
+                                      </span>
+                                      {index === 0 && (
+                                        <span className="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full font-semibold">
+                                          Terbaru
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                      <span className="px-3 py-1 bg-amber-100 text-amber-700 text-sm rounded-lg font-medium">
+                                        {history.source || 'Manual'}
+                                      </span>
+                                      {priceChange !== null && (
+                                        <span className={`text-sm font-semibold ${
+                                          priceChange >= 0 ? 'text-green-600' : 'text-red-600'
+                                        }`}>
+                                          <FontAwesomeIcon
+                                            icon={priceChange >= 0 ? faArrowTrendUp : faArrowTrendDown}
+                                            className="mr-1"
+                                          />
+                                          {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <div className="space-y-2">
+                                      <div>
+                                        <div className="text-xs text-gray-500 mb-1">Harga Beli</div>
+                                        <div className="text-xl font-bold text-gray-900">
+                                          {formatCurrency(history.price_per_gram)}
+                                        </div>
+                                      </div>
+                                      {history.buyback_price && (
+                                        <div>
+                                          <div className="text-xs text-gray-500 mb-1">Harga Buyback</div>
+                                          <div className="text-lg font-semibold text-blue-600">
+                                            {formatCurrency(history.buyback_price)}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={() => setShowPriceHistoryModal(false)}
+                className="w-full px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-xl hover:shadow-lg transition-all font-semibold"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

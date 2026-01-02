@@ -251,6 +251,26 @@ class GoldPriceSetting(db.Model):
         return f'<GoldPriceSetting {self.gold_type} - {self.buy_price}>'
 
 
+class GoldPrice(db.Model):
+    """Daily gold price model - global for all workspaces."""
+    __tablename__ = 'gold_prices'
+    __table_args__ = (
+        db.UniqueConstraint('date', 'source', name='uq_gold_prices_date_source'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.Date, nullable=False, index=True)  # Tanggal harga emas
+    price_per_gram = db.Column(db.Numeric(15, 2), nullable=False)  # Harga beli per gram dalam IDR
+    buyback_price = db.Column(db.Numeric(15, 2), nullable=True)  # Harga buyback per gram dalam IDR
+    source = db.Column(db.String(100), nullable=True)  # Sumber data (e.g., "ANTAM", "GALERI24", "UBS")
+    notes = db.Column(db.Text, nullable=True)  # Catatan tambahan
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self) -> str:
+        return f'<GoldPrice {self.date} {self.source} - {self.price_per_gram}>'
+
+
 class BudgetPlan(db.Model):
     """Budget plan model for financial planning."""
     __tablename__ = 'budget_plans'

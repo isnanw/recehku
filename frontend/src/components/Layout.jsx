@@ -84,7 +84,7 @@ const Layout = () => {
   ];
 
   const isActive = (path) => location.pathname === path;
-  const isMasterActive = () => location.pathname === '/accounts' || location.pathname === '/categories';
+  const isMasterActive = () => location.pathname === '/accounts' || location.pathname === '/categories' || location.pathname === '/gold-prices';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">

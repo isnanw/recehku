@@ -2,7 +2,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
-from app.models import Investment, WorkspaceMember, Transaction, Category, Account, GoldPriceSetting
+from app.models import Investment, WorkspaceMember, Transaction, Category, Account, GoldPriceSetting, GoldPrice
 from app.decorators import require_role
 from datetime import datetime, date
 from decimal import Decimal
@@ -477,6 +477,7 @@ def set_all_gold_prices() -> Tuple[Dict[str, Any], int]:
 
         valid_types = ['ANTAM', 'GALERI24', 'UBS']
         updated_count = 0
+        today = date.today()
 
         for price_data in prices:
             gold_type = price_data.get('gold_type')
@@ -516,6 +517,33 @@ def set_all_gold_prices() -> Tuple[Dict[str, Any], int]:
                     updated_at=get_wib_now()
                 )
                 db.session.add(setting)
+
+            # Save to gold_prices history table
+            # Check if price already exists for today and this gold type
+            existing_gold_price = GoldPrice.query.filter_by(
+                date=today,
+                source=gold_type
+            ).first()
+
+            if existing_gold_price:
+                # Update existing price for today
+                existing_gold_price.price_per_gram = Decimal(str(buy_price))
+                existing_gold_price.buyback_price = Decimal(str(buyback_price))
+                if source_link:
+                    existing_gold_price.notes = f"Link: {source_link}"
+                existing_gold_price.updated_at = get_wib_now()
+            else:
+                # Create new price record for today
+                new_gold_price = GoldPrice(
+                    date=today,
+                    price_per_gram=Decimal(str(buy_price)),
+                    buyback_price=Decimal(str(buyback_price)),
+                    source=gold_type,
+                    notes=f"Link: {source_link}" if source_link else None,
+                    created_at=get_wib_now(),
+                    updated_at=get_wib_now()
+                )
+                db.session.add(new_gold_price)
 
             updated_count += 1
 
@@ -638,3 +666,59 @@ def auto_update_all_prices() -> Tuple[Dict[str, Any], int]:
     except Exception as e:
         db.session.rollback()
         return {'error': f'Gagal memperbarui harga otomatis: {str(e)}'}, 500
+
+
+@investment_bp.route('/gold-price/history', methods=['GET'])
+@jwt_required()
+def get_gold_price_history() -> Tuple[Dict[str, Any], int]:
+    """
+    Get gold price history from gold_prices table.
+
+    Query params:
+        limit: int (optional, default 30) - number of records to return
+        days: int (optional, default 30) - number of days to look back
+
+    Returns:
+        JSON response with price history
+    """
+    try:
+        limit = request.args.get('limit', 30, type=int)
+        days = request.args.get('days', 30, type=int)
+
+        # Get recent gold prices ordered by date descending
+        gold_prices = GoldPrice.query.order_by(
+            GoldPrice.date.desc()
+        ).limit(limit).all()
+
+        history = []
+        for price in gold_prices:
+            history.append({
+                'id': price.id,
+                'date': price.date.isoformat(),
+                'price_per_gram': float(price.price_per_gram),
+                'buyback_price': float(price.buyback_price) if price.buyback_price else None,
+                'source': price.source,
+                'notes': price.notes,
+                'created_at': price.created_at.isoformat() if price.created_at else None,
+                'updated_at': price.updated_at.isoformat() if price.updated_at else None
+            })
+
+        # Calculate price change if we have at least 2 records
+        price_change = None
+        price_change_percent = None
+        if len(history) >= 2:
+            latest = history[0]['price_per_gram']
+            previous = history[1]['price_per_gram']
+            price_change = latest - previous
+            price_change_percent = (price_change / previous) * 100 if previous > 0 else 0
+
+        return {
+            'history': history,
+            'count': len(history),
+            'latest_price': history[0] if history else None,
+            'price_change': price_change,
+            'price_change_percent': round(price_change_percent, 2) if price_change_percent is not None else None
+        }, 200
+
+    except Exception as e:
+        return {'error': f'Gagal mengambil histori harga emas: {str(e)}'}, 500

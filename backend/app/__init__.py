@@ -38,6 +38,7 @@ def create_app(config_name: str = 'development') -> Flask:
     from app.routes import auth_bp, workspace_bp, account_bp, category_bp, transaction_bp, budget_bp
     from app.routes.analytics import analytics_bp
     from app.routes.investment import investment_bp
+    from app.routes.gold_price import gold_price_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(workspace_bp, url_prefix='/api/workspaces')
@@ -47,5 +48,6 @@ def create_app(config_name: str = 'development') -> Flask:
     app.register_blueprint(analytics_bp, url_prefix='/api/analytics')
     app.register_blueprint(investment_bp, url_prefix='/api/investments')
     app.register_blueprint(budget_bp, url_prefix='/api/budget')
+    app.register_blueprint(gold_price_bp)
 
     return app
