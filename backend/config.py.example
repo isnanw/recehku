@@ -1,7 +1,7 @@
 """
 Configuration file template for Recehku application.
 
-IMPORTANT: 
+IMPORTANT:
 1. Copy this file to config.py
 2. Update all values with your actual configuration
 3. NEVER commit config.py to version control
@@ -11,7 +11,7 @@ import os
 
 class Config:
     """Application configuration"""
-    
+
     # ==========================================
     # DATABASE CONFIGURATION
     # ==========================================
@@ -19,10 +19,10 @@ class Config:
     # Format: postgresql://username:password@host:port/database_name
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
         'postgresql://your_username:your_password@localhost:5432/recehku_db'
-    
+
     # Disable SQLAlchemy modification tracking (improves performance)
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    
+
     # ==========================================
     # JWT (JSON Web Token) CONFIGURATION
     # ==========================================
@@ -31,13 +31,13 @@ class Config:
     # You can use: python -c "import secrets; print(secrets.token_hex(32))"
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or \
         'change-this-to-a-random-secret-key-in-production'
-    
+
     # JWT token expiration time in seconds
     # 86400 = 24 hours
     # 3600 = 1 hour
     # 604800 = 7 days
     JWT_ACCESS_TOKEN_EXPIRES = 86400
-    
+
     # ==========================================
     # FLASK CONFIGURATION
     # ==========================================
@@ -45,10 +45,10 @@ class Config:
     # IMPORTANT: Generate a strong random string for production
     SECRET_KEY = os.environ.get('SECRET_KEY') or \
         'change-this-to-another-random-secret-key-in-production'
-    
+
     # Debug mode (set to False in production)
     DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
-    
+
     # ==========================================
     # CORS CONFIGURATION
     # ==========================================
@@ -56,40 +56,40 @@ class Config:
     # In development, use localhost
     # In production, use your actual domain
     CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'http://localhost:5173').split(',')
-    
+
     # ==========================================
     # TIMEZONE CONFIGURATION
     # ==========================================
     # Timezone for the application (using Indonesia/Jakarta)
     TIMEZONE = 'Asia/Jakarta'
-    
+
     # ==========================================
     # SECURITY RECOMMENDATIONS
     # ==========================================
     """
     For production deployment:
-    
+
     1. Generate strong random keys:
        - JWT_SECRET_KEY: At least 32 characters
        - SECRET_KEY: At least 32 characters
        - Use: python -c "import secrets; print(secrets.token_hex(32))"
-    
+
     2. Use environment variables:
        - Set DATABASE_URL in your environment
        - Set JWT_SECRET_KEY in your environment
        - Set SECRET_KEY in your environment
-    
+
     3. Database security:
        - Use strong database password
        - Restrict database access to localhost or specific IPs
        - Enable SSL/TLS for database connections
-    
+
     4. Application security:
        - Set DEBUG = False
        - Use HTTPS in production
        - Configure firewall rules
        - Regular security updates
-    
+
     5. Never commit config.py to git:
        - config.py is already in .gitignore
        - Only commit config.py.example
