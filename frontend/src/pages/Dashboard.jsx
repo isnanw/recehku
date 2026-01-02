@@ -621,63 +621,62 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-12">
-          <div className="flex flex-col lg:flex-row gap-6 items-stretch">
-            <div className="flex-1 h-full">
-              <div className="bg-white rounded-2xl shadow-xl p-6 h-full">
-                {/* AI Insights limited note */}
-                {ai_insights_limited && ai_insights_note && (
-                  <div className="bg-yellow-50 border-l-4 border-yellow-400 rounded-lg p-3 mb-3">
-                    <div className="flex items-start gap-3">
-                      <div className="text-yellow-600 mt-0.5">
-                        <FontAwesomeIcon icon={faInfoCircle} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-yellow-800">{ai_insights_note}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* AI Insights Section - Auto Slider */}
-                {ai_insights && ai_insights.length > 0 && (
-                  <div className="space-y-5 h-full">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
-                        <FontAwesomeIcon icon={faRobot} className="text-white text-lg" />
-                      </div>
-                      <div>
-                        <h2 className="text-2xl font-bold text-gray-900">Analisa AI</h2>
-                        <p className="text-sm text-gray-600">Rekomendasi cerdas untuk keuangan Anda</p>
-                      </div>
-                    </div>
-                    <div className="h-full">
-                      <AIInsightsSlider insights={ai_insights} getPriorityColor={getPriorityColor} getPriorityIcon={getPriorityIcon} />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="w-full lg:w-80 h-full">
-              <div className="bg-white rounded-2xl shadow-xl p-6 h-full">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-500 via-amber-400 to-yellow-600 flex items-center justify-center shadow-md">
-                    <FontAwesomeIcon icon={faWallet} className="text-white" />
+      {/* AI Insights and Accounts Section - Grid Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* AI Insights - Takes 2 columns on large screens */}
+        <div className="lg:col-span-2">
+          <div className="bg-white rounded-2xl shadow-xl p-6 flex flex-col">
+            {/* AI Insights limited note */}
+            {ai_insights_limited && ai_insights_note && (
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 rounded-lg p-3 mb-3">
+                <div className="flex items-start gap-3">
+                  <div className="text-yellow-600 mt-0.5">
+                    <FontAwesomeIcon icon={faInfoCircle} />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-800">Rekening</h3>
-                    <p className="text-xs text-gray-500">Saldo per akun (geser untuk melihat)</p>
+                    <p className="text-sm font-semibold text-yellow-800">{ai_insights_note}</p>
                   </div>
                 </div>
+              </div>
+            )}
 
-                <div className="h-full">
-                  <AccountCardSlider accounts={accounts} hideBalance={hideBalance} formatCurrency={formatCurrency} />
+            {/* AI Insights Section - Auto Slider */}
+            {ai_insights && ai_insights.length > 0 && (
+              <div className="flex-1 flex flex-col space-y-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
+                    <FontAwesomeIcon icon={faRobot} className="text-white text-lg" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Analisa AI</h2>
+                    <p className="text-sm text-gray-600">Rekomendasi cerdas untuk keuangan Anda</p>
+                  </div>
                 </div>
-                {accountsLoading && <p className="text-xs text-gray-400 mt-2">Memuat rekening...</p>}
+                <div className="flex-1">
+                  <AIInsightsSlider insights={ai_insights} getPriorityColor={getPriorityColor} getPriorityIcon={getPriorityIcon} />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Accounts - Takes 1 column on large screens */}
+        <div className="lg:col-span-1">
+          <div className="bg-white rounded-2xl shadow-xl p-6 flex flex-col">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-500 via-amber-400 to-yellow-600 flex items-center justify-center shadow-md">
+                <FontAwesomeIcon icon={faWallet} className="text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800">Rekening</h3>
+                <p className="text-xs text-gray-500">Saldo per akun (geser untuk melihat)</p>
               </div>
             </div>
+
+            <div className="flex-1">
+              <AccountCardSlider accounts={accounts} hideBalance={hideBalance} formatCurrency={formatCurrency} />
+            </div>
+            {accountsLoading && <p className="text-xs text-gray-400 mt-2">Memuat rekening...</p>}
           </div>
         </div>
       </div>
