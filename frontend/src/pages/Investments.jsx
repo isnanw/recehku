@@ -1111,19 +1111,44 @@ const Investments = () => {
                             <div className="text-sm text-blue-600 font-medium mb-2">Harga Rata-rata</div>
                             <div className="text-2xl font-bold text-blue-700">{formatCurrency(avgPrice)}</div>
                           </div>
-                          <div className={`bg-gradient-to-br p-5 rounded-xl border-2 ${
-                            totalChange >= 0
-                              ? 'from-emerald-50 to-green-50 border-emerald-200'
-                              : 'from-red-50 to-rose-50 border-red-200'
-                          }`}>
-                            <div className={`text-sm font-medium mb-2 ${totalChange >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                              Perubahan Total
+                          <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200 p-5 rounded-xl border-2">
+                            <div className="text-sm font-medium mb-3 text-gray-700">
+                              Perubahan Harga
                             </div>
-                            <div className={`text-2xl font-bold flex items-center gap-2 ${
-                              totalChange >= 0 ? 'text-emerald-700' : 'text-red-700'
-                            }`}>
-                              <FontAwesomeIcon icon={totalChange >= 0 ? faArrowTrendUp : faArrowTrendDown} />
-                              {Math.abs(totalChange).toFixed(2)}%
+
+                            <div className="grid grid-cols-2 gap-4">
+                              {/* Perubahan Harga Beli */}
+                              <div>
+                                <div className="text-xs text-gray-600 mb-1">Harga Beli</div>
+                                <div className={`text-xl font-bold flex items-center gap-2 ${
+                                  totalChange >= 0 ? 'text-emerald-700' : 'text-red-700'
+                                }`}>
+                                  <FontAwesomeIcon icon={totalChange >= 0 ? faArrowTrendUp : faArrowTrendDown} />
+                                  {totalChange >= 0 ? '+' : ''}{totalChange.toFixed(2)}%
+                                </div>
+                              </div>
+
+                              {/* Perubahan Harga Buyback */}
+                              {(() => {
+                                if (filteredData[0].buyback_price && filteredData[filteredData.length - 1].buyback_price) {
+                                  const latestBuyback = filteredData[0].buyback_price;
+                                  const oldestBuyback = filteredData[filteredData.length - 1].buyback_price;
+                                  const buybackChange = ((latestBuyback - oldestBuyback) / oldestBuyback) * 100;
+
+                                  return (
+                                    <div className="pl-4 border-l-2 border-purple-200">
+                                      <div className="text-xs text-gray-600 mb-1">Harga Buyback</div>
+                                      <div className={`text-xl font-bold flex items-center gap-2 ${
+                                        buybackChange >= 0 ? 'text-emerald-700' : 'text-red-700'
+                                      }`}>
+                                        <FontAwesomeIcon icon={buybackChange >= 0 ? faArrowTrendUp : faArrowTrendDown} />
+                                        {buybackChange >= 0 ? '+' : ''}{buybackChange.toFixed(2)}%
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })()}
                             </div>
                           </div>
                         </div>
@@ -1136,12 +1161,28 @@ const Investments = () => {
                           </h4>
                           <ResponsiveContainer width="100%" height={400}>
                             <LineChart
-                              data={[...filteredData].reverse().map(h => ({
-                                date: new Date(h.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }),
-                                'Harga Beli': h.price_per_gram,
-                                'Harga Buyback': h.buyback_price || 0,
-                                source: h.source
-                              }))}
+                              data={(() => {
+                                if (selectedGoldType === 'ALL') {
+                                  // Group by date untuk menampilkan semua jenis emas dalam satu chart
+                                  const groupedByDate = {};
+                                  priceHistory.forEach(h => {
+                                    const dateKey = new Date(h.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+                                    if (!groupedByDate[dateKey]) {
+                                      groupedByDate[dateKey] = { date: dateKey };
+                                    }
+                                    groupedByDate[dateKey][`${h.source} Beli`] = h.price_per_gram;
+                                    groupedByDate[dateKey][`${h.source} Buyback`] = h.buyback_price || 0;
+                                  });
+                                  return Object.values(groupedByDate).reverse();
+                                } else {
+                                  return [...filteredData].reverse().map(h => ({
+                                    date: new Date(h.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }),
+                                    'Harga Beli': h.price_per_gram,
+                                    'Harga Buyback': h.buyback_price || 0,
+                                    source: h.source
+                                  }));
+                                }
+                              })()}
                               margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                             >
                               <CartesianGrid strokeDasharray="3 3" />
@@ -1154,22 +1195,83 @@ const Investments = () => {
                                 labelStyle={{ color: '#374151' }}
                               />
                               <Legend />
-                              <Line
-                                type="monotone"
-                                dataKey="Harga Beli"
-                                stroke="#f59e0b"
-                                strokeWidth={3}
-                                dot={{ fill: '#f59e0b', r: 5 }}
-                                activeDot={{ r: 7 }}
-                              />
-                              <Line
-                                type="monotone"
-                                dataKey="Harga Buyback"
-                                stroke="#3b82f6"
-                                strokeWidth={3}
-                                dot={{ fill: '#3b82f6', r: 5 }}
-                                activeDot={{ r: 7 }}
-                              />
+                              {selectedGoldType === 'ALL' ? (
+                                <>
+                                  {/* ANTAM Lines */}
+                                  <Line
+                                    type="monotone"
+                                    dataKey="ANTAM Beli"
+                                    stroke="#f59e0b"
+                                    strokeWidth={2}
+                                    dot={{ fill: '#f59e0b', r: 4 }}
+                                    activeDot={{ r: 6 }}
+                                  />
+                                  <Line
+                                    type="monotone"
+                                    dataKey="ANTAM Buyback"
+                                    stroke="#fb923c"
+                                    strokeWidth={2}
+                                    strokeDasharray="5 5"
+                                    dot={{ fill: '#fb923c', r: 4 }}
+                                    activeDot={{ r: 6 }}
+                                  />
+                                  {/* GALERI24 Lines */}
+                                  <Line
+                                    type="monotone"
+                                    dataKey="GALERI24 Beli"
+                                    stroke="#3b82f6"
+                                    strokeWidth={2}
+                                    dot={{ fill: '#3b82f6', r: 4 }}
+                                    activeDot={{ r: 6 }}
+                                  />
+                                  <Line
+                                    type="monotone"
+                                    dataKey="GALERI24 Buyback"
+                                    stroke="#60a5fa"
+                                    strokeWidth={2}
+                                    strokeDasharray="5 5"
+                                    dot={{ fill: '#60a5fa', r: 4 }}
+                                    activeDot={{ r: 6 }}
+                                  />
+                                  {/* UBS Lines */}
+                                  <Line
+                                    type="monotone"
+                                    dataKey="UBS Beli"
+                                    stroke="#10b981"
+                                    strokeWidth={2}
+                                    dot={{ fill: '#10b981', r: 4 }}
+                                    activeDot={{ r: 6 }}
+                                  />
+                                  <Line
+                                    type="monotone"
+                                    dataKey="UBS Buyback"
+                                    stroke="#34d399"
+                                    strokeWidth={2}
+                                    strokeDasharray="5 5"
+                                    dot={{ fill: '#34d399', r: 4 }}
+                                    activeDot={{ r: 6 }}
+                                  />
+                                </>
+                              ) : (
+                                <>
+                                  <Line
+                                    type="monotone"
+                                    dataKey="Harga Beli"
+                                    stroke="#f59e0b"
+                                    strokeWidth={3}
+                                    dot={{ fill: '#f59e0b', r: 5 }}
+                                    activeDot={{ r: 7 }}
+                                  />
+                                  <Line
+                                    type="monotone"
+                                    dataKey="Harga Buyback"
+                                    stroke="#3b82f6"
+                                    strokeWidth={3}
+                                    dot={{ fill: '#3b82f6', r: 5 }}
+                                    activeDot={{ r: 7 }}
+                                  />
+                                </>
+                              )}
                             </LineChart>
                           </ResponsiveContainer>
                         </div>
@@ -1182,73 +1284,217 @@ const Investments = () => {
                               Detail Histori Harga ({filteredData.length} data)
                             </h4>
                           </div>
-                          <div className="p-4 space-y-3 max-h-96 overflow-y-auto">
-                            {filteredData.map((history, index) => {
-                              const previousPrice = filteredData[index + 1];
-                              const priceChange = previousPrice
-                                ? ((history.price_per_gram - previousPrice.price_per_gram) / previousPrice.price_per_gram) * 100
-                                : null;
+                          <div className="p-4 space-y-4 max-h-96 overflow-y-auto">
+                            {selectedGoldType === 'ALL' ? (
+                              // Group by date untuk tampilan ALL
+                              (() => {
+                                const groupedByDate = {};
+                                priceHistory.forEach(h => {
+                                  const dateKey = h.date;
+                                  if (!groupedByDate[dateKey]) {
+                                    groupedByDate[dateKey] = {
+                                      date: dateKey,
+                                      items: []
+                                    };
+                                  }
+                                  groupedByDate[dateKey].items.push(h);
+                                });
 
-                              return (
-                                <div
-                                  key={history.id}
-                                  className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-white rounded-lg border border-gray-200 hover:border-amber-300 hover:shadow-md transition-all"
-                                >
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-2">
-                                      <FontAwesomeIcon icon={faCalendar} className="text-gray-400" />
-                                      <span className="font-semibold text-gray-800">
-                                        {new Date(history.date).toLocaleDateString('id-ID', {
-                                          weekday: 'long',
-                                          day: '2-digit',
-                                          month: 'long',
-                                          year: 'numeric'
-                                        })}
-                                      </span>
-                                      {index === 0 && (
-                                        <span className="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full font-semibold">
-                                          Terbaru
-                                        </span>
-                                      )}
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                      <span className="px-3 py-1 bg-amber-100 text-amber-700 text-sm rounded-lg font-medium">
-                                        {history.source || 'Manual'}
-                                      </span>
-                                      {priceChange !== null && (
-                                        <span className={`text-sm font-semibold ${
-                                          priceChange >= 0 ? 'text-green-600' : 'text-red-600'
-                                        }`}>
-                                          <FontAwesomeIcon
-                                            icon={priceChange >= 0 ? faArrowTrendUp : faArrowTrendDown}
-                                            className="mr-1"
-                                          />
-                                          {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                  <div className="text-right">
-                                    <div className="space-y-2">
-                                      <div>
-                                        <div className="text-xs text-gray-500 mb-1">Harga Beli</div>
-                                        <div className="text-xl font-bold text-gray-900">
-                                          {formatCurrency(history.price_per_gram)}
+                                const sortedGroups = Object.values(groupedByDate).sort((a, b) =>
+                                  new Date(b.date) - new Date(a.date)
+                                );
+
+                                return sortedGroups.map((group, groupIndex) => {
+                                  // Get previous day's data for comparison
+                                  const previousGroup = sortedGroups[groupIndex + 1];
+
+                                  return (
+                                    <div key={group.date} className="border-2 border-gray-200 rounded-xl overflow-hidden">
+                                      {/* Date Header */}
+                                      <div className="bg-gradient-to-r from-amber-50 to-yellow-50 p-4 border-b border-gray-200">
+                                        <div className="flex items-center justify-between">
+                                          <div className="flex items-center gap-2">
+                                            <FontAwesomeIcon icon={faCalendar} className="text-amber-600" />
+                                            <span className="font-bold text-gray-800">
+                                              {new Date(group.date).toLocaleDateString('id-ID', {
+                                                weekday: 'long',
+                                                day: '2-digit',
+                                                month: 'long',
+                                                year: 'numeric'
+                                              })}
+                                            </span>
+                                          </div>
+                                          {groupIndex === 0 && (
+                                            <span className="px-3 py-1 bg-green-500 text-white text-xs rounded-full font-bold">
+                                              Terbaru
+                                            </span>
+                                          )}
                                         </div>
                                       </div>
-                                      {history.buyback_price && (
+                                      {/* Gold Types */}
+                                      <div className="divide-y divide-gray-100">
+                                        {group.items.map((history) => {
+                                          const goldTypeColor = {
+                                            'ANTAM': 'from-orange-50 to-amber-50 border-orange-200',
+                                            'GALERI24': 'from-blue-50 to-indigo-50 border-blue-200',
+                                            'UBS': 'from-green-50 to-emerald-50 border-green-200'
+                                          };
+
+                                          const textColor = {
+                                            'ANTAM': 'text-orange-700',
+                                            'GALERI24': 'text-blue-700',
+                                            'UBS': 'text-green-700'
+                                          };
+
+                                          // Calculate price change from previous day for this gold type
+                                          let priceChange = null;
+                                          let buybackChange = null;
+                                          if (previousGroup) {
+                                            const previousSameType = previousGroup.items.find(
+                                              item => item.source === history.source
+                                            );
+                                            if (previousSameType) {
+                                              priceChange = ((history.price_per_gram - previousSameType.price_per_gram) / previousSameType.price_per_gram) * 100;
+                                              if (history.buyback_price && previousSameType.buyback_price) {
+                                                buybackChange = ((history.buyback_price - previousSameType.buyback_price) / previousSameType.buyback_price) * 100;
+                                              }
+                                            }
+                                          }
+
+                                          return (
+                                            <div
+                                              key={history.id}
+                                              className={`p-4 bg-gradient-to-r ${goldTypeColor[history.source] || 'from-gray-50 to-white'} hover:shadow-md transition-all`}
+                                            >
+                                              <div className="flex items-center justify-between">
+                                                <div className="flex-1">
+                                                  <div className="flex items-center gap-3 mb-3">
+                                                    <FontAwesomeIcon icon={faCoins} className={textColor[history.source] || 'text-gray-600'} />
+                                                    <span className={`font-bold text-lg ${textColor[history.source] || 'text-gray-800'}`}>
+                                                      {history.source || 'Manual'}
+                                                    </span>
+                                                  </div>
+                                                  <div className="grid grid-cols-2 gap-3">
+                                                    <div className="bg-white/60 rounded-lg p-3">
+                                                      <div className="flex items-center justify-between mb-1">
+                                                        <div className="text-xs text-gray-600">Harga Beli</div>
+                                                        {priceChange !== null && (
+                                                          <span className={`text-xs font-bold flex items-center gap-1 ${
+                                                            priceChange >= 0 ? 'text-green-600' : 'text-red-600'
+                                                          }`}>
+                                                            <FontAwesomeIcon
+                                                              icon={priceChange >= 0 ? faArrowTrendUp : faArrowTrendDown}
+                                                              className="text-[10px]"
+                                                            />
+                                                            {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
+                                                          </span>
+                                                        )}
+                                                      </div>
+                                                      <div className="text-lg font-bold text-gray-900">
+                                                        {formatCurrency(history.price_per_gram)}
+                                                      </div>
+                                                    </div>
+                                                    {history.buyback_price && (
+                                                      <div className="bg-white/60 rounded-lg p-3">
+                                                        <div className="flex items-center justify-between mb-1">
+                                                          <div className="text-xs text-gray-600">Harga Buyback</div>
+                                                          {buybackChange !== null && (
+                                                            <span className={`text-xs font-bold flex items-center gap-1 ${
+                                                              buybackChange >= 0 ? 'text-green-600' : 'text-red-600'
+                                                            }`}>
+                                                              <FontAwesomeIcon
+                                                                icon={buybackChange >= 0 ? faArrowTrendUp : faArrowTrendDown}
+                                                                className="text-[10px]"
+                                                              />
+                                                              {buybackChange >= 0 ? '+' : ''}{buybackChange.toFixed(2)}%
+                                                            </span>
+                                                          )}
+                                                        </div>
+                                                        <div className="text-lg font-bold text-blue-600">
+                                                          {formatCurrency(history.buyback_price)}
+                                                        </div>
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  );
+                                });
+                              })()
+                            ) : (
+                              // Tampilan single type (tidak berubah)
+                              filteredData.map((history, index) => {
+                                const previousPrice = filteredData[index + 1];
+                                const priceChange = previousPrice
+                                  ? ((history.price_per_gram - previousPrice.price_per_gram) / previousPrice.price_per_gram) * 100
+                                  : null;
+
+                                return (
+                                  <div
+                                    key={history.id}
+                                    className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-white rounded-lg border border-gray-200 hover:border-amber-300 hover:shadow-md transition-all"
+                                  >
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <FontAwesomeIcon icon={faCalendar} className="text-gray-400" />
+                                        <span className="font-semibold text-gray-800">
+                                          {new Date(history.date).toLocaleDateString('id-ID', {
+                                            weekday: 'long',
+                                            day: '2-digit',
+                                            month: 'long',
+                                            year: 'numeric'
+                                          })}
+                                        </span>
+                                        {index === 0 && (
+                                          <span className="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full font-semibold">
+                                            Terbaru
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center gap-3">
+                                        <span className="px-3 py-1 bg-amber-100 text-amber-700 text-sm rounded-lg font-medium">
+                                          {history.source || 'Manual'}
+                                        </span>
+                                        {priceChange !== null && (
+                                          <span className={`text-sm font-semibold ${
+                                            priceChange >= 0 ? 'text-green-600' : 'text-red-600'
+                                          }`}>
+                                            <FontAwesomeIcon
+                                              icon={priceChange >= 0 ? faArrowTrendUp : faArrowTrendDown}
+                                              className="mr-1"
+                                            />
+                                            {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="text-right">
+                                      <div className="space-y-2">
                                         <div>
-                                          <div className="text-xs text-gray-500 mb-1">Harga Buyback</div>
-                                          <div className="text-lg font-semibold text-blue-600">
-                                            {formatCurrency(history.buyback_price)}
+                                          <div className="text-xs text-gray-500 mb-1">Harga Beli</div>
+                                          <div className="text-xl font-bold text-gray-900">
+                                            {formatCurrency(history.price_per_gram)}
                                           </div>
                                         </div>
-                                      )}
+                                        {history.buyback_price && (
+                                          <div>
+                                            <div className="text-xs text-gray-500 mb-1">Harga Buyback</div>
+                                            <div className="text-lg font-semibold text-blue-600">
+                                              {formatCurrency(history.buyback_price)}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              );
-                            })}
+                                );
+                              })
+                            )}
                           </div>
                         </div>
                       </>
