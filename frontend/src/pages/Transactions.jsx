@@ -75,6 +75,7 @@ const Transaksi = () => {
       end_date: lastDayFormatted,
       type: '',
       account_id: '',
+      category_id: '',
     };
   });
 
@@ -308,6 +309,7 @@ const Transaksi = () => {
       end_date: '',
       type: '',
       account_id: '',
+      category_id: '',
     });
   };
 
@@ -317,6 +319,30 @@ const Transaksi = () => {
       currency: 'IDR',
       minimumFractionDigits: 0,
     }).format(amount);
+  };
+
+  // Calculate transaction summary
+  const getTransactionSummary = () => {
+    const summary = {
+      income: 0,
+      expense: 0,
+      transfer: 0,
+      net: 0,
+    };
+
+    transactions.forEach((txn) => {
+      const amount = parseFloat(txn.amount) || 0;
+      if (txn.type === 'INCOME') {
+        summary.income += amount;
+      } else if (txn.type === 'EXPENSE') {
+        summary.expense += amount;
+      } else if (txn.type === 'TRANSFER') {
+        summary.transfer += amount;
+      }
+    });
+
+    summary.net = summary.income - summary.expense;
+    return summary;
   };
 
   const getTypeColor = (type) => {
@@ -334,10 +360,21 @@ const Transaksi = () => {
 
   const getFilteredCategories = () => {
     if (!categories || !Array.isArray(categories)) return [];
+    // Filter categories based on transaction type
+    // For TRANSFER, no categories should be shown
+    // For INCOME, only show INCOME categories
+    // For EXPENSE, only show EXPENSE categories
     return categories.filter((cat) => {
       if (formData.type === 'TRANSFER') return false;
       return cat.type === formData.type;
     });
+  };
+
+  // Get filtered categories for filter form (based on filters.type)
+  const getFilteredCategoriesForFilter = () => {
+    if (!categories || !Array.isArray(categories)) return [];
+    if (!filters.type || filters.type === 'TRANSFER') return [];
+    return categories.filter((cat) => cat.type === filters.type);
   };
 
   // Format categories for react-select with hierarchical display
@@ -633,14 +670,14 @@ const Transaksi = () => {
                     <span className="w-6 h-6 rounded-lg bg-pink-100 flex items-center justify-center">
                       <FontAwesomeIcon icon={faList} className="text-pink-600 text-xs" />
                     </span>
-                    Kategori <span className="text-red-500">*</span>
+                    Kategori {formData.type === 'INCOME' ? 'Pemasukan' : 'Pengeluaran'} <span className="text-red-500">*</span>
                   </label>
                   <Select
                     value={formatCategoriesForSelect().find(opt => opt.value === parseInt(formData.category_id)) || null}
                     onChange={(selected) => setFormData({ ...formData, category_id: selected ? selected.value.toString() : '' })}
                     options={formatCategoriesForSelect()}
                     styles={selectStyles}
-                    placeholder="Pilih Kategori..."
+                    placeholder={formData.type === 'INCOME' ? 'Pilih Kategori Pemasukan...' : 'Pilih Kategori Pengeluaran...'}
                     isSearchable
                     isClearable
                     filterOption={filterCategoryOption}
@@ -807,7 +844,7 @@ const Transaksi = () => {
             </label>
             <select
               value={filters.type}
-              onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+              onChange={(e) => setFilters({ ...filters, type: e.target.value, category_id: '' })}
               className="input-field"
             >
               <option value="">Semua Tipe</option>
@@ -834,6 +871,26 @@ const Transaksi = () => {
               ))}
             </select>
           </div>
+          {filters.type && filters.type !== 'TRANSFER' && (
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                <FontAwesomeIcon icon={faList} className="text-gray-500" />
+                Kategori {filters.type === 'INCOME' ? 'Pemasukan' : 'Pengeluaran'}
+              </label>
+              <select
+                value={filters.category_id}
+                onChange={(e) => setFilters({ ...filters, category_id: e.target.value })}
+                className="input-field"
+              >
+                <option value="">Semua Kategori</option>
+                {getFilteredCategoriesForFilter().map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.parent_id ? `  ↳ ${category.name}` : category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
         <div className="flex flex-wrap gap-3 mt-6 pt-4 border-t border-gray-100">
           <button
@@ -854,6 +911,78 @@ const Transaksi = () => {
           </div>
         </div>
       </div>
+
+      {/* Summary Cards */}
+      {transactions.length > 0 && (() => {
+        const summary = getTransactionSummary();
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Total Pemasukan */}
+            <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-6 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg">
+                  <FontAwesomeIcon icon={faArrowUp} className="text-2xl text-white" />
+                </div>
+                <span className="text-green-100 text-sm font-semibold">Total Pemasukan</span>
+              </div>
+              <div className="text-3xl font-bold text-white mb-1">
+                {formatCurrency(summary.income)}
+              </div>
+              <div className="text-green-100 text-xs">
+                {transactions.filter(t => t.type === 'INCOME').length} transaksi
+              </div>
+            </div>
+
+            {/* Total Pengeluaran */}
+            <div className="bg-gradient-to-br from-red-500 to-rose-600 rounded-2xl p-6 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg">
+                  <FontAwesomeIcon icon={faArrowDown} className="text-2xl text-white" />
+                </div>
+                <span className="text-red-100 text-sm font-semibold">Total Pengeluaran</span>
+              </div>
+              <div className="text-3xl font-bold text-white mb-1">
+                {formatCurrency(summary.expense)}
+              </div>
+              <div className="text-red-100 text-xs">
+                {transactions.filter(t => t.type === 'EXPENSE').length} transaksi
+              </div>
+            </div>
+
+            {/* Total Transfer */}
+            <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-6 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg">
+                  <FontAwesomeIcon icon={faExchangeAlt} className="text-2xl text-white" />
+                </div>
+                <span className="text-blue-100 text-sm font-semibold">Total Transfer</span>
+              </div>
+              <div className="text-3xl font-bold text-white mb-1">
+                {formatCurrency(summary.transfer)}
+              </div>
+              <div className="text-blue-100 text-xs">
+                {transactions.filter(t => t.type === 'TRANSFER').length} transaksi
+              </div>
+            </div>
+
+            {/* Saldo Bersih */}
+            <div className={`bg-gradient-to-br ${summary.net >= 0 ? 'from-purple-500 to-violet-600' : 'from-orange-500 to-amber-600'} rounded-2xl p-6 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300`}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg">
+                  <FontAwesomeIcon icon={faDollarSign} className="text-2xl text-white" />
+                </div>
+                <span className="text-white/90 text-sm font-semibold">Saldo Bersih</span>
+              </div>
+              <div className="text-3xl font-bold text-white mb-1">
+                {summary.net >= 0 ? '+' : ''}{formatCurrency(summary.net)}
+              </div>
+              <div className="text-white/80 text-xs">
+                Pemasukan - Pengeluaran
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Riwayat Transaksi */}
       <div className="bg-white rounded-3xl shadow-2xl p-8 border border-gray-100 hover:shadow-3xl transition-all duration-300">

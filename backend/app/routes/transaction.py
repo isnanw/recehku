@@ -42,6 +42,7 @@ def get_transactions() -> Tuple[Dict[str, Any], int]:
         end_date: str (optional) - YYYY-MM-DD
         type: str (optional) - INCOME, EXPENSE, TRANSFER
         account_id: int (optional)
+        category_id: int (optional)
 
     Returns:
         JSON response with list of transactions
@@ -80,6 +81,10 @@ def get_transactions() -> Tuple[Dict[str, Any], int]:
                     Transaction.transfer_to_account_id == account_id
                 )
             )
+
+        if request.args.get('category_id'):
+            category_id = request.args.get('category_id', type=int)
+            query = query.filter_by(category_id=category_id)
 
         # Pagination support
         page = request.args.get('page', type=int, default=1)
