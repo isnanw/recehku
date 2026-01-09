@@ -1,9 +1,12 @@
 """Authentication routes."""
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_from_directory
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from app import db, bcrypt
 from app.models import User, Workspace, WorkspaceMember, Role
 from typing import Tuple, Dict, Any
+from werkzeug.utils import secure_filename
+import os
+from datetime import datetime
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -218,7 +221,9 @@ def get_current_user() -> Tuple[Dict[str, Any], int]:
                 'id': user.id,
                 'email': user.email,
                 'name': user.name,
-                'is_owner': user.is_owner
+                'is_owner': user.is_owner,
+                'profile_picture': user.profile_picture,
+                'profile_picture_url': f'/auth/profile-picture/{user.profile_picture}' if user.profile_picture else None
             },
             'workspaces': workspaces
         }, 200
@@ -342,3 +347,142 @@ def update_password() -> Tuple[Dict[str, Any], int]:
     except Exception as e:
         db.session.rollback()
         return {'error': f'Gagal mengubah password: {str(e)}'}, 500
+
+
+@auth_bp.route('/profile-picture', methods=['POST'])
+@jwt_required()
+def upload_profile_picture() -> Tuple[Dict[str, Any], int]:
+    """
+    Upload profile picture for current user.
+
+    Expected: multipart/form-data with 'profile_picture' file
+
+    Returns:
+        JSON response with profile picture URL
+    """
+    try:
+        current_user_id = int(get_jwt_identity())
+        user = User.query.get(current_user_id)
+
+        if not user:
+            return {'error': 'Pengguna tidak ditemukan'}, 404
+
+        # Check if file is present
+        if 'profile_picture' not in request.files:
+            return {'error': 'File tidak ditemukan'}, 400
+
+        file = request.files['profile_picture']
+
+        if file.filename == '':
+            return {'error': 'File tidak dipilih'}, 400
+
+        # Validate file extension
+        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+        file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+
+        if file_ext not in allowed_extensions:
+            return {'error': 'Format file tidak didukung. Gunakan: png, jpg, jpeg, gif, atau webp'}, 400
+
+        # Get workspace name (use first workspace or default)
+        workspace_member = WorkspaceMember.query.filter_by(user_id=user.id).first()
+        workspace_name = workspace_member.workspace.name if workspace_member else 'default'
+
+        # Clean workspace and user name for filename
+        clean_workspace = secure_filename(workspace_name.replace(' ', '_'))
+        clean_username = secure_filename(user.name.replace(' ', '_'))
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+
+        # Create filename: workspace_username_timestamp.ext
+        filename = f"{clean_workspace}_{clean_username}_{timestamp}.{file_ext}"
+
+        # Create upload directory if not exists
+        # __file__ is in backend/app/routes/auth.py
+        # dirname(__file__) = backend/app/routes
+        # dirname(dirname(__file__)) = backend/app
+        # dirname(dirname(dirname(__file__))) = backend
+        upload_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'uploads', 'profiles')
+        os.makedirs(upload_dir, exist_ok=True)
+
+        # Delete old profile picture if exists
+        if user.profile_picture:
+            old_file_path = os.path.join(upload_dir, user.profile_picture)
+            if os.path.exists(old_file_path):
+                try:
+                    os.remove(old_file_path)
+                except Exception as e:
+                    print(f"Error deleting old profile picture: {e}")
+
+        # Save file
+        file_path = os.path.join(upload_dir, filename)
+        file.save(file_path)
+
+        # Update user profile picture path
+        user.profile_picture = filename
+        db.session.commit()
+
+        return {
+            'message': 'Foto profil berhasil diupload',
+            'profile_picture': filename,
+            'profile_picture_url': f'/auth/profile-picture/{filename}'
+        }, 200
+
+    except Exception as e:
+        db.session.rollback()
+        return {'error': f'Gagal mengupload foto profil: {str(e)}'}, 500
+
+
+@auth_bp.route('/profile-picture/<filename>', methods=['GET'])
+def get_profile_picture(filename: str):
+    """
+    Serve profile picture file.
+
+    Args:
+        filename: The filename of the profile picture
+
+    Returns:
+        The profile picture file
+    """
+    upload_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'uploads', 'profiles')
+    return send_from_directory(upload_dir, filename)
+
+
+@auth_bp.route('/profile-picture', methods=['DELETE'])
+@jwt_required()
+def delete_profile_picture() -> Tuple[Dict[str, Any], int]:
+    """
+    Delete profile picture for current user.
+
+    Returns:
+        JSON response with success message
+    """
+    try:
+        current_user_id = int(get_jwt_identity())
+        user = User.query.get(current_user_id)
+
+        if not user:
+            return {'error': 'Pengguna tidak ditemukan'}, 404
+
+        if not user.profile_picture:
+            return {'error': 'Tidak ada foto profil untuk dihapus'}, 400
+
+        # Delete file from storage
+        upload_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'uploads', 'profiles')
+        file_path = os.path.join(upload_dir, user.profile_picture)
+
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except Exception as e:
+                print(f"Error deleting profile picture file: {e}")
+
+        # Update user record
+        user.profile_picture = None
+        db.session.commit()
+
+        return {
+            'message': 'Foto profil berhasil dihapus'
+        }, 200
+
+    except Exception as e:
+        db.session.rollback()
+        return {'error': f'Gagal menghapus foto profil: {str(e)}'}, 500

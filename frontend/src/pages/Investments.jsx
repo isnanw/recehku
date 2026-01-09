@@ -242,6 +242,78 @@ const Investments = () => {
     }
   };
 
+  // Custom Tooltip untuk menampilkan selisih harga
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-4 rounded-xl shadow-2xl border-2 border-gray-200">
+          <p className="font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200">{label}</p>
+          {payload.map((entry, index) => {
+            // Cari data sebelumnya untuk menghitung selisih
+            const currentData = entry.payload;
+            const chartData = (() => {
+              if (selectedGoldType === 'ALL') {
+                const groupedByDate = {};
+                priceHistory.forEach(h => {
+                  const dateKey = new Date(h.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+                  if (!groupedByDate[dateKey]) {
+                    groupedByDate[dateKey] = { date: dateKey };
+                  }
+                  groupedByDate[dateKey][`${h.source} Beli`] = h.price_per_gram;
+                  groupedByDate[dateKey][`${h.source} Buyback`] = h.buyback_price || 0;
+                });
+                return Object.values(groupedByDate).reverse();
+              } else {
+                const filteredData = priceHistory.filter(h => h.source === selectedGoldType);
+                return [...filteredData].reverse().map(h => ({
+                  date: new Date(h.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }),
+                  'Harga Beli': h.price_per_gram,
+                  'Harga Buyback': h.buyback_price || 0,
+                  source: h.source
+                }));
+              }
+            })();
+
+            const currentIndex = chartData.findIndex(d => d.date === label);
+            const previousData = currentIndex > 0 ? chartData[currentIndex - 1] : null;
+
+            const currentValue = entry.value;
+            const previousValue = previousData ? previousData[entry.dataKey] : null;
+            const difference = previousValue ? currentValue - previousValue : 0;
+            const percentChange = previousValue ? ((difference / previousValue) * 100) : 0;
+
+            return (
+              <div key={index} className="mb-2 last:mb-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: entry.color }}
+                  />
+                  <span className="font-semibold text-gray-700">{entry.name}</span>
+                </div>
+                <div className="ml-5">
+                  <p className="text-sm font-bold text-gray-900">{formatCurrency(currentValue)}</p>
+                  {previousValue && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={`text-xs font-semibold flex items-center gap-1 ${difference >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <FontAwesomeIcon icon={difference >= 0 ? faArrowTrendUp : faArrowTrendDown} />
+                        {difference >= 0 ? '+' : ''}{formatCurrency(difference)}
+                      </span>
+                      <span className={`text-xs font-semibold ${percentChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        ({percentChange >= 0 ? '+' : ''}{percentChange.toFixed(2)}%)
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+    return null;
+  };
+
   const handleAutoUpdateGoldPrice = async () => {
     const loadingToast = toast.loading('Memperbarui harga emas...');
 
@@ -438,30 +510,30 @@ const Investments = () => {
       )}
 
       {/* Auto Update Button */}
-      <div className="flex justify-end gap-3">
+      <div className="flex flex-col sm:flex-row justify-end gap-3">
         <button
           onClick={() => setShowPriceHistoryModal(true)}
-          className="px-6 py-3 bg-gradient-to-r from-amber-600 to-yellow-600 text-white rounded-xl hover:shadow-lg transition-all font-semibold flex items-center gap-2"
+          className="w-full sm:w-auto px-4 py-3 bg-gradient-to-r from-amber-600 to-yellow-600 text-white rounded-xl hover:shadow-lg transition-all font-semibold flex items-center justify-center gap-2 text-sm sm:text-base"
         >
           <FontAwesomeIcon icon={faChartLine} />
-          Lihat Histori Harga
+          <span className="truncate">Lihat Histori Harga</span>
         </button>
         {user?.is_owner && (
           <button
             onClick={() => setShowPriceSettingModal(true)}
-            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:shadow-lg transition-all font-semibold flex items-center gap-2"
+            className="w-full sm:w-auto px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:shadow-lg transition-all font-semibold flex items-center justify-center gap-2 text-sm sm:text-base"
           >
             <FontAwesomeIcon icon={faPenToSquare} />
-            Atur Harga Emas
+            <span className="truncate">Atur Harga Emas</span>
           </button>
         )}
         <button
           onClick={handleAutoUpdateGoldPrice}
           disabled={updatingPrice}
-          className="px-6 py-3 bg-gradient-to-r from-yellow-600 to-orange-600 text-white rounded-xl hover:shadow-lg transition-all font-semibold flex items-center gap-2"
+          className="w-full sm:w-auto px-4 py-3 bg-gradient-to-r from-yellow-600 to-orange-600 text-white rounded-xl hover:shadow-lg transition-all font-semibold flex items-center justify-center gap-2 text-sm sm:text-base"
         >
           <FontAwesomeIcon icon={faRefresh} className={updatingPrice ? 'animate-spin' : ''} />
-          Update Semua Harga Otomatis
+          <span className="truncate">Update Semua Harga Otomatis</span>
         </button>
       </div>
 
@@ -1020,8 +1092,8 @@ const Investments = () => {
 
       {/* Modal Histori Harga Emas */}
       {showPriceHistoryModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-7xl max-h-[90vh] overflow-hidden flex flex-col my-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-7xl max-h-[95vh] overflow-hidden flex flex-col">
             {/* Header */}
             <div className="bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 p-6 text-white">
               <div className="flex items-center justify-between">
@@ -1098,33 +1170,33 @@ const Investments = () => {
                     return (
                       <>
                         {/* Stats Cards */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-5 rounded-xl border-2 border-green-200">
-                            <div className="text-sm text-green-600 font-medium mb-2">Harga Tertinggi</div>
-                            <div className="text-2xl font-bold text-green-700">{formatCurrency(maxPrice)}</div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                          <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-3 sm:p-5 rounded-xl border-2 border-green-200">
+                            <div className="text-xs sm:text-sm text-green-600 font-medium mb-2">Harga Tertinggi</div>
+                            <div className="text-base sm:text-xl lg:text-2xl font-bold text-green-700 break-words">{formatCurrency(maxPrice)}</div>
                           </div>
-                          <div className="bg-gradient-to-br from-red-50 to-rose-50 p-5 rounded-xl border-2 border-red-200">
-                            <div className="text-sm text-red-600 font-medium mb-2">Harga Terendah</div>
-                            <div className="text-2xl font-bold text-red-700">{formatCurrency(minPrice)}</div>
+                          <div className="bg-gradient-to-br from-red-50 to-rose-50 p-3 sm:p-5 rounded-xl border-2 border-red-200">
+                            <div className="text-xs sm:text-sm text-red-600 font-medium mb-2">Harga Terendah</div>
+                            <div className="text-base sm:text-xl lg:text-2xl font-bold text-red-700 break-words">{formatCurrency(minPrice)}</div>
                           </div>
-                          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-5 rounded-xl border-2 border-blue-200">
-                            <div className="text-sm text-blue-600 font-medium mb-2">Harga Rata-rata</div>
-                            <div className="text-2xl font-bold text-blue-700">{formatCurrency(avgPrice)}</div>
+                          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-3 sm:p-5 rounded-xl border-2 border-blue-200">
+                            <div className="text-xs sm:text-sm text-blue-600 font-medium mb-2">Harga Rata-rata</div>
+                            <div className="text-base sm:text-xl lg:text-2xl font-bold text-blue-700 break-words">{formatCurrency(avgPrice)}</div>
                           </div>
-                          <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200 p-5 rounded-xl border-2">
-                            <div className="text-sm font-medium mb-3 text-gray-700">
+                          <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200 p-3 sm:p-5 rounded-xl border-2">
+                            <div className="text-xs sm:text-sm font-medium mb-2 sm:mb-3 text-gray-700">
                               Perubahan Harga
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
                               {/* Perubahan Harga Beli */}
                               <div>
-                                <div className="text-xs text-gray-600 mb-1">Harga Beli</div>
-                                <div className={`text-xl font-bold flex items-center gap-2 ${
+                                <div className="text-[10px] sm:text-xs text-gray-600 mb-1">Harga Beli</div>
+                                <div className={`text-sm sm:text-lg lg:text-xl font-bold flex items-center gap-1 sm:gap-2 ${
                                   totalChange >= 0 ? 'text-emerald-700' : 'text-red-700'
                                 }`}>
-                                  <FontAwesomeIcon icon={totalChange >= 0 ? faArrowTrendUp : faArrowTrendDown} />
-                                  {totalChange >= 0 ? '+' : ''}{totalChange.toFixed(2)}%
+                                  <FontAwesomeIcon icon={totalChange >= 0 ? faArrowTrendUp : faArrowTrendDown} className="text-xs sm:text-base" />
+                                  <span className="break-words">{totalChange >= 0 ? '+' : ''}{totalChange.toFixed(2)}%</span>
                                 </div>
                               </div>
 
@@ -1136,13 +1208,13 @@ const Investments = () => {
                                   const buybackChange = ((latestBuyback - oldestBuyback) / oldestBuyback) * 100;
 
                                   return (
-                                    <div className="pl-4 border-l-2 border-purple-200">
-                                      <div className="text-xs text-gray-600 mb-1">Harga Buyback</div>
-                                      <div className={`text-xl font-bold flex items-center gap-2 ${
+                                    <div className="sm:pl-4 sm:border-l-2 border-purple-200 pt-2 sm:pt-0 border-t-2 sm:border-t-0">
+                                      <div className="text-[10px] sm:text-xs text-gray-600 mb-1">Harga Buyback</div>
+                                      <div className={`text-sm sm:text-lg lg:text-xl font-bold flex items-center gap-1 sm:gap-2 ${
                                         buybackChange >= 0 ? 'text-emerald-700' : 'text-red-700'
                                       }`}>
-                                        <FontAwesomeIcon icon={buybackChange >= 0 ? faArrowTrendUp : faArrowTrendDown} />
-                                        {buybackChange >= 0 ? '+' : ''}{buybackChange.toFixed(2)}%
+                                        <FontAwesomeIcon icon={buybackChange >= 0 ? faArrowTrendUp : faArrowTrendDown} className="text-xs sm:text-base" />
+                                        <span className="break-words">{buybackChange >= 0 ? '+' : ''}{buybackChange.toFixed(2)}%</span>
                                       </div>
                                     </div>
                                   );
@@ -1154,12 +1226,12 @@ const Investments = () => {
                         </div>
 
                         {/* Grafik */}
-                        <div className="bg-white p-6 rounded-xl border-2 border-gray-200 shadow-sm">
-                          <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                        <div className="bg-white p-3 sm:p-6 rounded-xl border-2 border-gray-200 shadow-sm">
+                          <h4 className="text-sm sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4 flex items-center gap-2">
                             <FontAwesomeIcon icon={faChartLine} className="text-amber-600" />
-                            Pergerakan Harga {selectedGoldType === 'ALL' ? 'Semua Jenis Emas' : selectedGoldType}
+                            <span className="truncate">Pergerakan Harga {selectedGoldType === 'ALL' ? 'Semua Jenis Emas' : selectedGoldType}</span>
                           </h4>
-                          <ResponsiveContainer width="100%" height={400}>
+                          <ResponsiveContainer width="100%" height={300} className="sm:h-[400px]">
                             <LineChart
                               data={(() => {
                                 if (selectedGoldType === 'ALL') {
@@ -1188,12 +1260,10 @@ const Investments = () => {
                               <CartesianGrid strokeDasharray="3 3" />
                               <XAxis dataKey="date" />
                               <YAxis
+                                domain={['auto', 'auto']}
                                 tickFormatter={(value) => `${(value / 1000000).toFixed(1)}jt`}
                               />
-                              <Tooltip
-                                formatter={(value) => formatCurrency(value)}
-                                labelStyle={{ color: '#374151' }}
-                              />
+                              <Tooltip content={<CustomTooltip />} />
                               <Legend />
                               {selectedGoldType === 'ALL' ? (
                                 <>
@@ -1284,7 +1354,7 @@ const Investments = () => {
                               Detail Histori Harga ({filteredData.length} data)
                             </h4>
                           </div>
-                          <div className="p-4 space-y-4 max-h-96 overflow-y-auto">
+                          <div className="p-4 space-y-4">
                             {selectedGoldType === 'ALL' ? (
                               // Group by date untuk tampilan ALL
                               (() => {

@@ -28,6 +28,7 @@ class User(db.Model):
     hashed_password = db.Column(db.String(255), nullable=False)
     name = db.Column(db.String(100), nullable=False)
     is_owner = db.Column(db.Boolean, default=False, nullable=False)  # Super Admin flag
+    profile_picture = db.Column(db.String(255), nullable=True)  # Path to profile picture
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships

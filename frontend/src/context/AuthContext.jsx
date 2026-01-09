@@ -97,6 +97,23 @@ export const AuthProvider = ({ children }) => {
     setWorkspaces([]);
   };
 
+  const refreshUser = async () => {
+    try {
+      const response = await api.get('/auth/me');
+      setUser(response.data.user);
+      setWorkspaces(response.data.workspaces);
+
+      // Update localStorage with fresh data
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      localStorage.setItem('workspaces', JSON.stringify(response.data.workspaces));
+
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to refresh user:', error);
+      return { success: false };
+    }
+  };
+
   const value = {
     user,
     workspaces,
@@ -104,6 +121,7 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
+    refreshUser,
     isAuthenticated: !!user,
   };
 

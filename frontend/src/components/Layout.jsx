@@ -202,8 +202,16 @@ const Layout = () => {
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-md">
-                      <FontAwesomeIcon icon={faCircleUser} className="text-white text-lg" />
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-md overflow-hidden">
+                      {user?.profile_picture_url ? (
+                        <img
+                          src={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${user.profile_picture_url}`}
+                          alt={user.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <FontAwesomeIcon icon={faCircleUser} className="text-white text-lg" />
+                      )}
                     </div>
                     <div className="text-left">
                       <p className="text-sm font-semibold text-gray-800">{user?.name}</p>
@@ -226,10 +234,18 @@ const Layout = () => {
                     {/* User Info Card */}
                     <div className="p-4 bg-gradient-to-br from-blue-50 to-purple-50 border-b border-gray-100">
                       <div className="flex items-center gap-3 mb-3">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg">
-                          <span className="text-white text-xl font-bold">
-                            {user?.name?.charAt(0).toUpperCase()}
-                          </span>
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg overflow-hidden">
+                          {user?.profile_picture_url ? (
+                            <img
+                              src={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${user.profile_picture_url}`}
+                              alt={user.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-white text-xl font-bold">
+                              {user?.name?.charAt(0).toUpperCase()}
+                            </span>
+                          )}
                         </div>
                         <div className="flex-1">
                           <p className="font-semibold text-gray-800">{user?.name}</p>
@@ -337,10 +353,18 @@ const Layout = () => {
               {/* Mobile User Info */}
               <div className="p-4 bg-gradient-to-br from-blue-50 to-purple-50 border-b border-gray-200">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg">
-                    <span className="text-white text-xl font-bold">
-                      {user?.name?.charAt(0).toUpperCase()}
-                    </span>
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg overflow-hidden">
+                    {user?.profile_picture_url ? (
+                      <img
+                        src={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${user.profile_picture_url}`}
+                        alt={user.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-white text-xl font-bold">
+                        {user?.name?.charAt(0).toUpperCase()}
+                      </span>
+                    )}
                   </div>
                   <div className="flex-1">
                     <p className="font-semibold text-gray-800">{user?.name}</p>

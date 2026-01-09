@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faEnvelope, faLock, faSave, faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
+import { faUser, faEnvelope, faLock, faSave, faEye, faEyeSlash, faCamera, faTrash, faImage } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 
 const Settings = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [profilePictureUrl, setProfilePictureUrl] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
   // Profile form state
   const [profileData, setProfileData] = useState({
@@ -26,11 +30,32 @@ const Settings = () => {
   });
 
   useEffect(() => {
+    // Force refresh user data to get latest profile_picture_url
+    const fetchFreshUserData = async () => {
+      if (refreshUser) {
+        await refreshUser();
+      }
+    };
+    fetchFreshUserData();
+  }, []);
+
+  useEffect(() => {
     if (user) {
       setProfileData({
         name: user.name || '',
         email: user.email || '',
       });
+
+      // Set profile picture URL
+      if (user.profile_picture_url) {
+        const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        const fullUrl = `${baseUrl}${user.profile_picture_url}`;
+        setProfilePictureUrl(fullUrl);
+        setPreviewUrl(fullUrl);
+      } else {
+        setProfilePictureUrl(null);
+        setPreviewUrl(null);
+      }
     }
   }, [user]);
 
@@ -132,6 +157,108 @@ const Settings = () => {
     }
   };
 
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error('Format file tidak didukung. Gunakan: PNG, JPG, JPEG, GIF, atau WEBP');
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Ukuran file maksimal 5MB');
+        return;
+      }
+
+      setSelectedFile(file);
+
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleUploadPhoto = async () => {
+    if (!selectedFile) {
+      toast.error('Pilih foto terlebih dahulu');
+      return;
+    }
+
+    setUploadingPhoto(true);
+    const formData = new FormData();
+    formData.append('profile_picture', selectedFile);
+
+    try {
+      const response = await api.post('/auth/profile-picture', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const fullUrl = `${baseUrl}${response.data.profile_picture_url}`;
+      setProfilePictureUrl(fullUrl);
+      setPreviewUrl(fullUrl);
+
+      toast.success('Foto profil berhasil diupload!');
+      setSelectedFile(null);
+
+      // Refresh user data from AuthContext
+      await refreshUser();
+    } catch (error) {
+      const errorMessage = error.response?.data?.error || 'Gagal mengupload foto profil';
+      toast.error(errorMessage);
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleDeletePhoto = async () => {
+    if (!profilePictureUrl) return;
+
+    setUploadingPhoto(true);
+    try {
+      await api.delete('/auth/profile-picture');
+
+      setProfilePictureUrl(null);
+      setPreviewUrl(null);
+      setSelectedFile(null);
+
+      toast.success('Foto profil berhasil dihapus!');
+
+      // Update user data in localStorage
+      const storedUser = JSON.parse(localStorage.getItem('user'));
+      storedUser.profile_picture = null;
+      storedUser.profile_picture_url = null;
+      localStorage.setItem('user', JSON.stringify(storedUser));
+
+      // Reload to update AuthContext
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    } catch (error) {
+      const errorMessage = error.response?.data?.error || 'Gagal menghapus foto profil';
+      toast.error(errorMessage);
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleCancelUpload = () => {
+    setSelectedFile(null);
+    if (profilePictureUrl) {
+      setPreviewUrl(profilePictureUrl);
+    } else {
+      setPreviewUrl(null);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fadeIn">
       {/* Page Header */}
@@ -150,6 +277,96 @@ const Settings = () => {
             <div>
               <h2 className="text-lg font-semibold text-gray-800">Informasi Profil</h2>
               <p className="text-sm text-gray-500">Update nama dan email Anda</p>
+            </div>
+          </div>
+
+          {/* Profile Picture Section */}
+          <div className="mb-6 pb-6 border-b border-gray-200">
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Foto Profil
+            </label>
+            <div className="grid grid-cols-2 gap-4">
+              {/* Left: File Input */}
+              <div className="space-y-3">
+                <input
+                  type="file"
+                  id="profile-picture"
+                  accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="profile-picture"
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl hover:shadow-lg transition-all cursor-pointer font-medium text-sm"
+                >
+                  <FontAwesomeIcon icon={faCamera} />
+                  Pilih Foto
+                </label>
+
+                {selectedFile && (
+                  <div className="space-y-2">
+                    <p className="text-xs text-gray-600 truncate" title={selectedFile.name}>
+                      {selectedFile.name}
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleUploadPhoto}
+                        disabled={uploadingPhoto}
+                        className="flex-1 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-xs font-medium disabled:opacity-50"
+                      >
+                        {uploadingPhoto ? 'Uploading...' : 'Upload'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCancelUpload}
+                        disabled={uploadingPhoto}
+                        className="flex-1 px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-xs font-medium disabled:opacity-50"
+                      >
+                        Batal
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {profilePictureUrl && !selectedFile && (
+                  <button
+                    type="button"
+                    onClick={handleDeletePhoto}
+                    disabled={uploadingPhoto}
+                    className="w-full px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    <FontAwesomeIcon icon={faTrash} />
+                    Hapus Foto
+                  </button>
+                )}
+
+                <p className="text-xs text-gray-500">
+                  Format: PNG, JPG, JPEG, GIF, WEBP (Max 5MB)
+                </p>
+              </div>
+
+              {/* Right: Preview */}
+              <div className="flex items-center justify-center">
+                <div className="relative">
+                  {previewUrl ? (
+                    <img
+                      src={previewUrl}
+                      alt="Profile Preview"
+                      className="w-32 h-32 rounded-full object-cover border-4 border-gray-200 shadow-lg"
+                    />
+                  ) : (
+                    <div className="w-32 h-32 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center border-4 border-gray-200 shadow-lg">
+                      <FontAwesomeIcon icon={faImage} className="text-4xl text-gray-400" />
+                    </div>
+                  )}
+                  {uploadingPhoto && (
+                    <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
